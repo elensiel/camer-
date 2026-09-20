@@ -50,7 +50,7 @@ class CameraHandler(
         onPhotoCaptured: (File) -> Unit,
         onError: (ImageCaptureException) -> Unit,
     ) {
-        val imageCapture = imageCapture ?: return
+        if (imageCapture == null) return
 
         val name = SimpleDateFormat(
             "yyyy-MM-dd-HH-mm-ss-SSS",
@@ -66,7 +66,7 @@ class CameraHandler(
             .Builder(photoFile)
             .build()
 
-        imageCapture.takePicture(
+        imageCapture!!.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
@@ -117,6 +117,10 @@ class CameraHandler(
 
     private fun bindCamera() {
         val provider = cameraProvider ?: return
+
+        imageCapture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .build()
 
         provider.unbindAll()
 
