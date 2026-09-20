@@ -1,6 +1,7 @@
 package com.elensiel.camer_
 
 import android.content.Context
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
