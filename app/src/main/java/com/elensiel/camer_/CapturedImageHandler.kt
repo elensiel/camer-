@@ -4,13 +4,11 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
-import androidx.lifecycle.LifecycleOwner
 import java.io.File
 import java.io.IOException
 
 class CapturedImageHandler(
     private val context: Context,
-//    private val lifecycleOwner: LifecycleOwner,
 ) {
     // saves the photo
     // that came from CameraHandler.takePhoto()
