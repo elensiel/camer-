@@ -69,7 +69,7 @@ fun CameraControls(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 24.dp, top = 24.dp),
-            onClick = {},
+            onClick = { cameraHandler.cycleAspectRatio() },
             icon = painterResource(R.drawable.settings),
             contentDescription = "Settings"
         )

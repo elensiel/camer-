@@ -61,7 +61,11 @@ fun App(
     }
 
     val capturedImageHandler = remember {
-        CapturedImageHandler(context)
+        CapturedImageHandler(
+            context,
+            "png",
+            "DCIM/camer-",
+        )
     }
 
     var capturedImage by remember { mutableStateOf<File?>(null) }

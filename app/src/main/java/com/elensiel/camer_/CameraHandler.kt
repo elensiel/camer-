@@ -6,6 +6,8 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
 import androidx.compose.runtime.getValue
@@ -14,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.elensiel.camer_.data.AppAspectRatio
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -22,27 +25,19 @@ class CameraHandler(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
 ) {
+
+    // ---------------------------------------------------------------
+    // Core camera objects
+    // ---------------------------------------------------------------
+
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
-    private val preview = Preview.Builder().build()
     private var imageCapture: ImageCapture? = null
+    var preview by mutableStateOf(Preview.Builder().build())
+        private set
 
-    // camera utilities' state
+
     var cameraSelector by mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
-        private set
-    var hasFlashUnit by mutableStateOf(true)
-        private set
-    var flashEnabled by mutableStateOf(false)
-        private set
-    var torchEnabled by mutableStateOf(false)
-        private set
-
-    // zoom state
-    var zoomRatio by mutableFloatStateOf(1f)
-        private set
-    var minZoomRatio by mutableFloatStateOf(1f)
-        private set
-    var maxZoomRatio by mutableFloatStateOf(1f)
         private set
 
     suspend fun startCamera() {
@@ -54,8 +49,85 @@ class CameraHandler(
         preview.surfaceProvider = surfaceProvider
     }
 
-    // takes a shot
-    // but does not save the photo immediately
+    private fun bindCamera() {
+        val provider = cameraProvider ?: return
+
+        val resolutionSelector = ResolutionSelector.Builder()
+            .setAspectRatioStrategy(
+                AspectRatioStrategy(
+                    aspectRatio.ratioInt,
+                    AspectRatioStrategy.FALLBACK_RULE_AUTO,
+                )
+            )
+            .build()
+
+        preview = Preview.Builder()
+            .setResolutionSelector(resolutionSelector)
+            .build()
+
+        imageCapture = ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .setResolutionSelector(resolutionSelector)
+            .build()
+
+        provider.unbindAll()
+
+        camera = provider.bindToLifecycle(
+            lifecycleOwner,
+            cameraSelector,
+            preview,
+            imageCapture,
+        )
+
+        hasFlashUnit = camera!!.cameraInfo.hasFlashUnit()
+
+        // sync zoom ratio with actual camera
+        camera!!.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
+            zoomRatio = state.zoomRatio
+            minZoomRatio = state.minZoomRatio
+            maxZoomRatio = state.maxZoomRatio
+        }
+    }
+
+    fun flipCamera() {
+        cameraSelector =
+            if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+                CameraSelector.DEFAULT_FRONT_CAMERA
+            } else {
+                CameraSelector.DEFAULT_BACK_CAMERA
+            }
+
+        // disable torch upon flipping
+        torchEnabled = false
+
+        bindCamera()
+    }
+
+    // ---------------------------------------------------------------
+    // Aspect ratio
+    // ---------------------------------------------------------------
+
+    var aspectRatio by mutableStateOf(AppAspectRatio.RATIO_4_3)
+        private set
+
+    fun applyAspectRatio(ratio: AppAspectRatio) {
+        if (aspectRatio == ratio) return
+        aspectRatio = ratio
+        bindCamera()
+    }
+
+    fun cycleAspectRatio() {
+        val values = AppAspectRatio.entries
+        val next = values[(values.indexOf(aspectRatio) + 1) % values.size]
+        applyAspectRatio(next)
+    }
+
+    // ---------------------------------------------------------------
+    // Capture
+    // ---------------------------------------------------------------
+
+    // Takes a shot but does not save the photo immediately;
+    // caller decides what to do with the returned file.
     fun takePhoto(
         onPhotoCaptured: (File) -> Unit,
         onError: (ImageCaptureException) -> Unit,
@@ -88,22 +160,20 @@ class CameraHandler(
                 override fun onError(exception: ImageCaptureException) {
                     onError(exception)
                 }
-            })
-    }
-
-    fun flipCamera() {
-        cameraSelector =
-            if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-                CameraSelector.DEFAULT_FRONT_CAMERA
-            } else {
-                CameraSelector.DEFAULT_BACK_CAMERA
             }
-
-        // disable torch upon flipping
-        torchEnabled = false
-
-        bindCamera()
+        )
     }
+
+    // ---------------------------------------------------------------
+    // Flash / torch
+    // ---------------------------------------------------------------
+
+    var hasFlashUnit by mutableStateOf(true)
+        private set
+    var flashEnabled by mutableStateOf(false)
+        private set
+    var torchEnabled by mutableStateOf(false)
+        private set
 
     fun toggleFlashMode() {
         if (!hasFlashUnit) return
@@ -125,7 +195,19 @@ class CameraHandler(
         camera?.cameraControl?.enableTorch(torchEnabled)
     }
 
+    // ---------------------------------------------------------------
+    // Zoom
+    // ---------------------------------------------------------------
+
+    var zoomRatio by mutableFloatStateOf(1f)
+        private set
+    var minZoomRatio by mutableFloatStateOf(1f)
+        private set
+    var maxZoomRatio by mutableFloatStateOf(1f)
+        private set
+
     fun zoomBy(scaleFactor: Float) = applyZoomRatio(zoomRatio * scaleFactor)
+
     fun resetZoom() = applyZoomRatio(1f)
 
     private fun applyZoomRatio(ratio: Float) {
@@ -138,31 +220,5 @@ class CameraHandler(
     // used by zoom slider ui
     fun setLinearZoom(linear: Float) {
         camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
-    }
-
-    private fun bindCamera() {
-        val provider = cameraProvider ?: return
-
-        imageCapture = ImageCapture.Builder()
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .build()
-
-        provider.unbindAll()
-
-        camera = provider.bindToLifecycle(
-            lifecycleOwner,
-            cameraSelector,
-            preview,
-            imageCapture,
-        )
-
-        hasFlashUnit = camera!!.cameraInfo.hasFlashUnit()
-
-        // sync zoom with actual camera
-        camera!!.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
-            zoomRatio = state.zoomRatio
-            minZoomRatio = state.minZoomRatio
-            maxZoomRatio = state.maxZoomRatio
-        }
     }
 }

@@ -9,6 +9,8 @@ import java.io.IOException
 
 class CapturedImageHandler(
     private val context: Context,
+    private val mimeType: String,
+    private val saveDirectory: String,
 ) {
     // saves the photo
     // that came from CameraHandler.takePhoto()
@@ -20,9 +22,9 @@ class CapturedImageHandler(
         try {
             val name = photoFile.nameWithoutExtension
             val contentValues = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, "$name.jpg")
-                put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
-                put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/tomAIto")
+                put(MediaStore.Images.Media.DISPLAY_NAME, "$name.$mimeType")
+                put(MediaStore.Images.Media.MIME_TYPE, "image/$mimeType")
+                put(MediaStore.Images.Media.RELATIVE_PATH, saveDirectory)
             }
 
             val resolver = context.contentResolver
