@@ -9,6 +9,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
@@ -26,6 +27,7 @@ class CameraHandler(
     private val preview = Preview.Builder().build()
     private var imageCapture: ImageCapture? = null
 
+    // camera utilities' state
     var cameraSelector by mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
         private set
     var hasFlashUnit by mutableStateOf(true)
@@ -33,6 +35,14 @@ class CameraHandler(
     var flashEnabled by mutableStateOf(false)
         private set
     var torchEnabled by mutableStateOf(false)
+        private set
+
+    // zoom state
+    var zoomRatio by mutableFloatStateOf(1f)
+        private set
+    var minZoomRatio by mutableFloatStateOf(1f)
+        private set
+    var maxZoomRatio by mutableFloatStateOf(1f)
         private set
 
     suspend fun startCamera() {
@@ -115,6 +125,21 @@ class CameraHandler(
         camera?.cameraControl?.enableTorch(torchEnabled)
     }
 
+    fun zoomBy(scaleFactor: Float) = applyZoomRatio(zoomRatio * scaleFactor)
+    fun resetZoom() = applyZoomRatio(1f)
+
+    private fun applyZoomRatio(ratio: Float) {
+        val cam = camera ?: return
+        val state = cam.cameraInfo.zoomState.value ?: return
+        val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
+        cam.cameraControl.setZoomRatio(clamped)
+    }
+
+    // used by zoom slider ui
+    fun setLinearZoom(linear: Float) {
+        camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
+    }
+
     private fun bindCamera() {
         val provider = cameraProvider ?: return
 
@@ -132,5 +157,12 @@ class CameraHandler(
         )
 
         hasFlashUnit = camera!!.cameraInfo.hasFlashUnit()
+
+        // sync zoom with actual camera
+        camera!!.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
+            zoomRatio = state.zoomRatio
+            minZoomRatio = state.minZoomRatio
+            maxZoomRatio = state.maxZoomRatio
+        }
     }
 }
