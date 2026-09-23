@@ -36,8 +36,6 @@ class CameraHandler(
     private var imageCapture: ImageCapture? = null
     var preview by mutableStateOf(Preview.Builder().build())
         private set
-
-
     var cameraSelector by mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
         private set
 

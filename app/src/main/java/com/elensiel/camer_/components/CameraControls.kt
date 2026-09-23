@@ -106,7 +106,7 @@ fun CameraControls(
                 modifier = Modifier
                     .padding(bottom = 24.dp)
                     .background(
-                        color = Color.White.copy(alpha = 0.35f),
+                        color = Color.White.copy(alpha = 0.20f),
                         shape = RoundedCornerShape(50)
                     )
                     .padding(horizontal = 32.dp, vertical = 12.dp),

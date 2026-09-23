@@ -26,7 +26,7 @@ fun ActionButton(
         onClick = onClick, modifier = modifier
             .size(size)
             .background(
-                color = Color.White.copy(alpha = 0.35f),
+                color = Color.White.copy(alpha = 0.20f),
                 shape = RoundedCornerShape(360.dp),
             )
             .border(
