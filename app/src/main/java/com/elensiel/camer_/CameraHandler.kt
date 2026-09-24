@@ -117,11 +117,11 @@ class CameraHandler(
         bindCamera()
     }
 
-    fun cycleAspectRatio() {
-        val values = AppAspectRatio.entries
-        val next = values[(values.indexOf(aspectRatio) + 1) % values.size]
-        applyAspectRatio(next)
-    }
+//    fun cycleAspectRatio() {
+//        val values = AppAspectRatio.entries
+//        val next = values[(values.indexOf(aspectRatio) + 1) % values.size]
+//        applyAspectRatio(next)
+//    }
 
     // ---------------------------------------------------------------
     // Capture

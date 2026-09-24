@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.elensiel.camer_.CameraHandler
 import com.elensiel.camer_.R
+import com.elensiel.camer_.data.AppAspectRatio
 
 @Composable
 fun CameraControls(
@@ -69,7 +72,7 @@ fun CameraControls(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 24.dp, top = 24.dp),
-            onClick = { cameraHandler.cycleAspectRatio() },
+            onClick = {},
             icon = painterResource(R.drawable.settings),
             contentDescription = "Settings"
         )
@@ -79,7 +82,7 @@ fun CameraControls(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
 
 //            Row(
@@ -104,7 +107,6 @@ fun CameraControls(
 
             Row(
                 modifier = Modifier
-                    .padding(bottom = 24.dp)
                     .background(
                         color = Color.White.copy(alpha = 0.20f),
                         shape = RoundedCornerShape(50)
@@ -134,6 +136,29 @@ fun CameraControls(
                     icon = painterResource(R.drawable.camera_flip),
                     contentDescription = "Flip camera"
                 )
+            }
+
+            Row(
+                modifier = Modifier
+                    .background(
+                        color = Color.White.copy(alpha = 0.20f),
+                        shape = RoundedCornerShape(50)
+                    )
+            ) {
+                AppAspectRatio.entries.forEach { ratio ->
+                    val isSelected = cameraHandler.aspectRatio == ratio
+
+                    TextButton(
+                        onClick = { cameraHandler.applyAspectRatio(ratio) },
+                    ) {
+                        Text(
+                            text = ratio.label,
+                            color =
+                                if (isSelected) Color.White
+                                else Color.White.copy(alpha = 0.5f)
+                        )
+                    }
+                }
             }
         }
     }
