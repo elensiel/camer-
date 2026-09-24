@@ -1,5 +1,6 @@
 package com.elensiel.camer_.components
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import com.elensiel.camer_.data.AppAspectRatio
 fun CameraControls(
     modifier: Modifier = Modifier,
     cameraHandler: CameraHandler,
+//    prefs: SharedPreferences,
     onCaptureClick: () -> Unit,
     onGalleryClick: () -> Unit,
 //    onSettingsClick: () -> Unit,

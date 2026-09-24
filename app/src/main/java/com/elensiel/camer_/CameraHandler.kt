@@ -1,6 +1,7 @@
 package com.elensiel.camer_
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -17,6 +18,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.LifecycleOwner
 import com.elensiel.camer_.data.AppAspectRatio
 import java.io.File
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit
 class CameraHandler(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
+    private val prefs: SharedPreferences,
 ) {
 
     // ---------------------------------------------------------------
@@ -108,20 +111,23 @@ class CameraHandler(
     // Aspect ratio
     // ---------------------------------------------------------------
 
-    var aspectRatio by mutableStateOf(AppAspectRatio.RATIO_4_3)
+    var aspectRatio by mutableStateOf(
+        prefs.getString("aspect_ratio", AppAspectRatio.RATIO_4_3.name)
+            ?.let { runCatching { AppAspectRatio.valueOf(it) }.getOrNull() }
+            ?: AppAspectRatio.RATIO_4_3
+    )
         private set
 
     fun applyAspectRatio(ratio: AppAspectRatio) {
         if (aspectRatio == ratio) return
+
         aspectRatio = ratio
         bindCamera()
-    }
 
-//    fun cycleAspectRatio() {
-//        val values = AppAspectRatio.entries
-//        val next = values[(values.indexOf(aspectRatio) + 1) % values.size]
-//        applyAspectRatio(next)
-//    }
+        prefs.edit {
+            putString("aspect_ratio", aspectRatio.name)
+        }
+    }
 
     // ---------------------------------------------------------------
     // Capture
@@ -171,7 +177,7 @@ class CameraHandler(
 
     var hasFlashUnit by mutableStateOf(true)
         private set
-    var flashEnabled by mutableStateOf(false)
+    var flashEnabled by mutableStateOf(prefs.getBoolean("flash_enabled", false))
         private set
     var torchEnabled by mutableStateOf(false)
         private set
@@ -187,6 +193,10 @@ class CameraHandler(
             } else {
                 ImageCapture.FLASH_MODE_OFF
             }
+
+        prefs.edit {
+            putBoolean("flash_enabled", flashEnabled)
+        }
     }
 
     fun toggleTorch() {
@@ -194,33 +204,6 @@ class CameraHandler(
 
         torchEnabled = !torchEnabled
         camera?.cameraControl?.enableTorch(torchEnabled)
-    }
-
-    // ---------------------------------------------------------------
-    // Zoom
-    // ---------------------------------------------------------------
-
-    var zoomRatio by mutableFloatStateOf(1f)
-        private set
-    var minZoomRatio by mutableFloatStateOf(1f)
-        private set
-    var maxZoomRatio by mutableFloatStateOf(1f)
-        private set
-
-    fun zoomBy(scaleFactor: Float) = applyZoomRatio(zoomRatio * scaleFactor)
-
-    fun resetZoom() = applyZoomRatio(1f)
-
-    private fun applyZoomRatio(ratio: Float) {
-        val cam = camera ?: return
-        val state = cam.cameraInfo.zoomState.value ?: return
-        val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
-        cam.cameraControl.setZoomRatio(clamped)
-    }
-
-    // used by zoom slider ui
-    fun setLinearZoom(linear: Float) {
-        camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
     }
 
     // ---------------------------------------------------------------
@@ -238,5 +221,32 @@ class CameraHandler(
             .build()
 
         cam.cameraControl.startFocusAndMetering(action)
+    }
+
+    // ---------------------------------------------------------------
+    // Zoom
+    // ---------------------------------------------------------------
+
+    var zoomRatio by mutableFloatStateOf(1f)
+        private set
+    var minZoomRatio by mutableFloatStateOf(1f)
+        private set
+    var maxZoomRatio by mutableFloatStateOf(1f)
+        private set
+
+    fun zoomBy(scaleFactor: Float) = applyZoomRatio(zoomRatio * scaleFactor)
+
+//    fun resetZoom() = applyZoomRatio(1f)
+
+    private fun applyZoomRatio(ratio: Float) {
+        val cam = camera ?: return
+        val state = cam.cameraInfo.zoomState.value ?: return
+        val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
+        cam.cameraControl.setZoomRatio(clamped)
+    }
+
+    // used by zoom slider ui
+    fun setLinearZoom(linear: Float) {
+        camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
     }
 }

@@ -52,11 +52,15 @@ fun App(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val sharedPreferences = remember {
+        context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+    }
 
     val cameraHandler = remember {
         CameraHandler(
             context = context,
             lifecycleOwner = lifecycleOwner,
+            prefs = sharedPreferences,
         )
     }
 
@@ -165,6 +169,10 @@ fun CameraScreenPreview() {
         CameraHandler(
             LocalContext.current,
             LocalLifecycleOwner.current,
+            prefs = LocalContext.current.getSharedPreferences(
+                "user_preferences",
+                Context.MODE_PRIVATE
+            ),
         ),
         {},
         {},
