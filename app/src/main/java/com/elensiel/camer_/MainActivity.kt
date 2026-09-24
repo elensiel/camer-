@@ -17,22 +17,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.elensiel.camer_.CameraScreen
 import com.elensiel.camer_.components.CameraControls
 import com.elensiel.camer_.components.CameraPreview
 import com.elensiel.camer_.components.CapturedImagePreview
-import com.elensiel.camer_.data.AppAspectRatio
 import com.elensiel.camer_.ui.theme.CamerTheme
 import com.tomatorangers.tomaito.permission.PermissionGate
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -57,7 +52,6 @@ fun App(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val appCoroutineScope = rememberCoroutineScope()
 
     val cameraHandler = remember {
         CameraHandler(
@@ -73,7 +67,6 @@ fun App(
             "DCIM/camer-",
         )
     }
-    val cropToSquare = remember { CropToSquareProcessor() }
 
     var capturedImage by remember { mutableStateOf<File?>(null) }
 
@@ -83,16 +76,7 @@ fun App(
                 innerPadding = innerPadding,
                 context = context,
                 cameraHandler = cameraHandler,
-                onPhotoCaptured = { file ->
-                    if (cameraHandler.aspectRatio == AppAspectRatio.RATIO_1_1) {
-                        appCoroutineScope.launch {
-                            val cropped = cropToSquare.process(file)
-                            capturedImage = cropped
-                        }
-                    } else {
-                        capturedImage = file
-                    }
-                }
+                onPhotoCaptured = { capturedImage = it },
             )
         }
 

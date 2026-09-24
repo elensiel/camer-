@@ -1,11 +1,12 @@
 package com.elensiel.camer_
 
 import android.content.Context
-import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.MeteringPoint
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -21,6 +22,7 @@ import com.elensiel.camer_.data.AppAspectRatio
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 class CameraHandler(
     private val context: Context,
@@ -219,5 +221,22 @@ class CameraHandler(
     // used by zoom slider ui
     fun setLinearZoom(linear: Float) {
         camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
+    }
+
+    // ---------------------------------------------------------------
+    // Focus
+    // ---------------------------------------------------------------
+
+    fun focusOnPoint(point: MeteringPoint) {
+        val cam = camera ?: return
+
+        val action = FocusMeteringAction.Builder(
+            point,
+            FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
+        )
+            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+            .build()
+
+        cam.cameraControl.startFocusAndMetering(action)
     }
 }
