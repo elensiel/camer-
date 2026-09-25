@@ -86,26 +86,6 @@ fun CameraControls(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
 
-//            Row(
-//                modifier = Modifier
-//                    .background(
-//                        color = Color.White.copy(alpha = 0.35f),
-//                        shape = RoundedCornerShape(50)
-//                    )
-//                    .padding(horizontal = 16.dp, vertical = 1.dp),
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy(4.dp)
-//            ) {
-//                Text("LIVE")
-//
-//                var isLiveMode by remember { mutableStateOf(false) }
-//
-//                Switch(
-//                    checked = isLiveMode,
-//                    onCheckedChange = { isLiveMode = it }
-//                )
-//            }
-
             Row(
                 modifier = Modifier
                     .background(

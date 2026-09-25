@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import kotlin.text.Typography.bullet
 
-//@Preview
 @Composable
 fun PermissionGate(
     onPermissionGranted: @Composable () -> Unit,
@@ -25,10 +24,17 @@ fun PermissionGate(
     val context = LocalContext.current
     val permissions = remember { AppPermissionList.required }
 
-    var permissionsGranted by remember { mutableStateOf(false) }
+    // ---------------------------------------------------------------
+    // State
+    // ---------------------------------------------------------------
 
+    var permissionsGranted by remember { mutableStateOf(false) }
     var showExplanationDialog by remember { mutableStateOf(false) }
     var showDeniedDialog by remember { mutableStateOf(false) }
+
+    // ---------------------------------------------------------------
+    // Permission logic
+    // ---------------------------------------------------------------
 
     fun areAllPermissionsGranted(): Boolean {
         return permissions.all { requiredPermission ->
@@ -61,6 +67,10 @@ fun PermissionGate(
         )
     }
 
+    // ---------------------------------------------------------------
+    // Lifecycle
+    // ---------------------------------------------------------------
+
     LaunchedEffect(Unit) {
         if (areAllPermissionsGranted()) {
             permissionsGranted = true
@@ -69,6 +79,10 @@ fun PermissionGate(
         }
     }
 
+    // ---------------------------------------------------------------
+    // UI
+    // ---------------------------------------------------------------
+
     when {
         permissionsGranted -> {
             onPermissionGranted()
@@ -76,17 +90,19 @@ fun PermissionGate(
 
         showExplanationDialog -> {
             ExplanationDialog(
-                permissions, {
+                permissions = permissions,
+                onContinue = {
                     showExplanationDialog = false
-
                     requestPermissions()
-                })
+                }
+            )
         }
 
         showDeniedDialog -> {
             DeniedDialog(
-                { requestPermissions() },
-                { (context as? Activity)?.finishAndRemoveTask() })
+                onTryAgain = { requestPermissions() },
+                onExit = { (context as? Activity)?.finishAndRemoveTask() }
+            )
         }
     }
 }
@@ -96,25 +112,26 @@ private fun ExplanationDialog(
     permissions: List<AppPermissionData>,
     onContinue: () -> Unit,
 ) {
-    AlertDialog(onDismissRequest = {}, title = { Text("Permissions required") }, text = {
-        Text(
-            buildString {
-                append(
-                    "The following permissions are required for the application to operate correctly.\n\n"
-                )
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Permissions required") },
+        text = {
+            Text(
+                buildString {
+                    append("The following permissions are required for the application to operate correctly.\n\n")
 
-                permissions.forEach { permission ->
-                    append("$bullet ${permission.displayName}\n")
+                    permissions.forEach { permission ->
+                        append("$bullet ${permission.displayName}\n")
+                    }
                 }
-
-            })
-    }, confirmButton = {
-        Button(
-            onClick = onContinue
-        ) {
-            Text("Continue")
+            )
+        },
+        confirmButton = {
+            Button(onClick = onContinue) {
+                Text("Continue")
+            }
         }
-    })
+    )
 }
 
 @Composable
@@ -122,21 +139,24 @@ private fun DeniedDialog(
     onTryAgain: () -> Unit,
     onExit: () -> Unit,
 ) {
-    AlertDialog(onDismissRequest = {}, title = { Text("Cannot continue") }, text = {
-        Text(
-            "The required permissions are required for the application to operate correctly.\n\n" + "You can try granting the permissions again."
-        )
-    }, confirmButton = {
-        Button(
-            onClick = onTryAgain
-        ) {
-            Text("Try again")
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Cannot continue") },
+        text = {
+            Text(
+                "The required permissions are required for the application to operate correctly.\n\n" +
+                        "You can try granting the permissions again."
+            )
+        },
+        confirmButton = {
+            Button(onClick = onTryAgain) {
+                Text("Try again")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onExit) {
+                Text("Exit")
+            }
         }
-    }, dismissButton = {
-        Button(
-            onClick = onExit
-        ) {
-            Text("Exit")
-        }
-    })
+    )
 }
