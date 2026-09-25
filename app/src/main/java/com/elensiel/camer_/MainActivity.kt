@@ -63,7 +63,6 @@ fun App(
             prefs = sharedPreferences,
         )
     }
-
     val capturedImageHandler = remember {
         CapturedImageHandler(
             context,
@@ -71,8 +70,8 @@ fun App(
             "DCIM/camer-",
         )
     }
-
     var capturedImage by remember { mutableStateOf<File?>(null) }
+
 
     when {
         capturedImage == null -> {
@@ -80,7 +79,11 @@ fun App(
                 innerPadding = innerPadding,
                 context = context,
                 cameraHandler = cameraHandler,
-                onPhotoCaptured = { capturedImage = it },
+                onPhotoCaptured = {
+                    // avoid capturing more than once
+                    // if user presses fast enough
+                    if (capturedImage == null) capturedImage = it
+                },
             )
         }
 
@@ -111,7 +114,7 @@ fun App(
 }
 
 @Composable
-fun CameraScreen(
+private fun CameraScreen(
     innerPadding: PaddingValues,
     context: Context,
     cameraHandler: CameraHandler,
@@ -132,11 +135,7 @@ fun CameraScreen(
             cameraHandler.takePhoto(
                 onPhotoCaptured = onPhotoCaptured,
                 onError = { exception ->
-                    Log.d(
-                        "Camera",
-                        "Capture failed",
-                        exception
-                    )
+                    Log.e("Camera", "Capture failed", exception)
                 }
             )
         },
@@ -161,7 +160,7 @@ fun CameraScreen(
 // UI DEBUGGING
 @Preview
 @Composable
-fun CameraScreenPreview() {
+private fun CameraScreenPreview() {
     CameraControls(
         modifier = Modifier
             .fillMaxSize()
