@@ -24,7 +24,6 @@ import com.elensiel.camer_.data.AppAspectRatio
 fun CameraControls(
     modifier: Modifier = Modifier,
     cameraHandler: CameraHandler,
-//    prefs: SharedPreferences,
     onCaptureClick: () -> Unit,
     onGalleryClick: () -> Unit,
 //    onSettingsClick: () -> Unit,

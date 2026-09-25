@@ -42,11 +42,12 @@ class CapturedImageHandler(
                 contentValues,
             ) ?: throw IOException("Failed to create MediaStore entry.")
 
-            resolver.openOutputStream(uri).use { outputStream ->
-                if (outputStream == null) throw IOException("Failed to open output stream.")
+            val outputStream = resolver.openOutputStream(uri)
+                ?: throw IOException("Failed to open output stream for $uri")
 
-                photoFile.inputStream().use { inputStream ->
-                    inputStream.copyTo(outputStream)
+            outputStream.use { output ->
+                photoFile.inputStream().use { input ->
+                    input.copyTo(output)
                 }
             }
 

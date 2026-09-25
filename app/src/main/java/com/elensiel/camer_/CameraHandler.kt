@@ -9,6 +9,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.MeteringPoint
 import androidx.camera.core.Preview
+import androidx.camera.core.ZoomState
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import com.elensiel.camer_.data.AppAspectRatio
 import java.io.File
 import java.text.SimpleDateFormat
@@ -44,6 +46,11 @@ class CameraHandler(
     var cameraSelector by mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA)
         private set
 
+    // Tracks the zoom observer/camera pair currently registered so bindCamera()
+    // can detach the old observer before attaching a new one on rebind.
+    private var zoomObserver: Observer<ZoomState>? = null
+    private var observedCamera: Camera? = null
+
     suspend fun startCamera() {
         cameraProvider = ProcessCameraProvider.awaitInstance(context)
         bindCamera()
@@ -55,6 +62,8 @@ class CameraHandler(
 
     private fun bindCamera() {
         val provider = cameraProvider ?: return
+
+        zoomObserver?.let { observedCamera?.cameraInfo?.zoomState?.removeObserver(it) }
 
         val resolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(
@@ -83,14 +92,25 @@ class CameraHandler(
             imageCapture,
         )
 
+        // restore flash/torch/zoom state on the newly bound camera
         hasFlashUnit = camera!!.cameraInfo.hasFlashUnit()
+        camera!!.cameraControl.enableTorch(torchEnabled)
+        imageCapture?.flashMode =
+            if (flashEnabled) ImageCapture.FLASH_MODE_ON
+            else ImageCapture.FLASH_MODE_OFF
 
-        // sync zoom ratio with actual camera
-        camera!!.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
+        // reapply last known zoom
+        val targetZoom = zoomRatio.coerceIn(1f, Float.MAX_VALUE)
+        camera!!.cameraControl.setZoomRatio(targetZoom)
+
+        // attack new zoom observer
+        zoomObserver = Observer { state ->
             zoomRatio = state.zoomRatio
             minZoomRatio = state.minZoomRatio
             maxZoomRatio = state.maxZoomRatio
         }
+        zoomObserver?.let { camera!!.cameraInfo.zoomState.observe(lifecycleOwner, it) }
+        observedCamera = camera
     }
 
     fun flipCamera() {
@@ -139,7 +159,7 @@ class CameraHandler(
         onPhotoCaptured: (File) -> Unit,
         onError: (ImageCaptureException) -> Unit,
     ) {
-        if (imageCapture == null) return
+        val imageCapture = imageCapture ?: return
 
         val name = SimpleDateFormat(
             "yyyy-MM-dd-HH-mm-ss-SSS",
@@ -155,7 +175,7 @@ class CameraHandler(
             .Builder(photoFile)
             .build()
 
-        imageCapture!!.takePicture(
+        imageCapture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
@@ -236,7 +256,7 @@ class CameraHandler(
 
     fun zoomBy(scaleFactor: Float) = applyZoomRatio(zoomRatio * scaleFactor)
 
-//    fun resetZoom() = applyZoomRatio(1f)
+    fun resetZoom() = applyZoomRatio(1f)
 
     private fun applyZoomRatio(ratio: Float) {
         val cam = camera ?: return
