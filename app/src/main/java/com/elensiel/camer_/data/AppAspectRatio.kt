@@ -12,5 +12,5 @@ enum class AppAspectRatio(
 
     // CameraX has no native 1:1 constant; falls back to 4:3 internally
     // and relies on cropping elsewhere to achieve a square preview.
-    RATIO_1_1(AspectRatio.RATIO_4_3, 1f, "1:1"),
+//    RATIO_1_1(AspectRatio.RATIO_4_3, 1f, "1:1"),
 }
