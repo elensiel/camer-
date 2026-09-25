@@ -1,12 +1,12 @@
-package com.tomatorangers.tomaito.permission
+package com.elensiel.permission
 
 import android.Manifest
 
-object AppPermissions {
-    val required: List<AppPermission>
+object AppPermissionList {
+    val required: List<AppPermissionData>
         get() = buildList {
             add(
-                AppPermission(
+                AppPermissionData(
                     permission = Manifest.permission.CAMERA,
                     displayName = "Camera",
                 )

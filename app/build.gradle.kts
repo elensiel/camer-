@@ -60,4 +60,6 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.compose)
     implementation(libs.coil.compose)
+
+    implementation(project(":permission"))
 }

@@ -27,7 +27,7 @@ import com.elensiel.camer_.components.CameraControls
 import com.elensiel.camer_.components.CameraPreview
 import com.elensiel.camer_.components.CapturedImagePreview
 import com.elensiel.camer_.ui.theme.CamerTheme
-import com.tomatorangers.tomaito.permission.PermissionGate
+import com.elensiel.permission.PermissionGate
 import java.io.File
 
 class MainActivity : ComponentActivity() {

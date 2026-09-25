@@ -1,4 +1,4 @@
-package com.tomatorangers.tomaito.permission
+package com.elensiel.permission
 
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -23,7 +23,7 @@ fun PermissionGate(
     onPermissionGranted: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val permissions = remember { AppPermissions.required }
+    val permissions = remember { AppPermissionList.required }
 
     var permissionsGranted by remember { mutableStateOf(false) }
 
@@ -93,7 +93,7 @@ fun PermissionGate(
 
 @Composable
 private fun ExplanationDialog(
-    permissions: List<AppPermission>,
+    permissions: List<AppPermissionData>,
     onContinue: () -> Unit,
 ) {
     AlertDialog(onDismissRequest = {}, title = { Text("Permissions required") }, text = {
