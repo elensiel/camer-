@@ -115,11 +115,11 @@ fun CameraPreview(
                 .drawWithContent {
                     drawContent()
 
-                    focusPoint?.let { point ->
+                    focusPoint?.let {
                         drawCircle(
                             color = Color.Yellow.copy(alpha = focusAlpha.coerceAtLeast(0.5f)),
                             radius = 45f,
-                            center = point,
+                            center = it,
                             style = Stroke(width = 3f),
                         )
                     }

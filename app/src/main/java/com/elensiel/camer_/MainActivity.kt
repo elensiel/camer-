@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CamerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PermissionGate {
+                    PermissionGate(permissions = CameraPermissions.permissions) {
                         App(innerPadding)
                     }
                 }
