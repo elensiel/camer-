@@ -82,7 +82,9 @@ fun App(
                 onPhotoCaptured = {
                     // avoid capturing more than once
                     // if user presses fast enough
-                    if (capturedImage == null) capturedImage = it
+                    if (capturedImage == null) {
+                        capturedImage = it
+                    }
                 },
             )
         }

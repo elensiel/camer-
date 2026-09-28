@@ -66,9 +66,7 @@ fun PermissionGate(
 
     var stage by remember { mutableStateOf<GateStage>(GateStage.Checking) }
 
-    // -- Evaluation --
-
-    fun evaluate() {
+    fun evaluateStage() {
         val ungranted = permissions.filter {
             ContextCompat.checkSelfPermission(context, it.permission) !=
                     PackageManager.PERMISSION_GRANTED
@@ -95,11 +93,11 @@ fun PermissionGate(
 
     // -- Lifecycle --
 
-    LaunchedEffect(Unit) { evaluate() }
+    LaunchedEffect(Unit) { evaluateStage() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) evaluate()
+            if (event == Lifecycle.Event.ON_RESUME) evaluateStage()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
 
@@ -110,7 +108,7 @@ fun PermissionGate(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         permissions.forEach { prefs.markRequested(it.permission) }
-        evaluate()
+        evaluateStage()
     }
 
     // -- UI --
@@ -160,11 +158,15 @@ private fun RationaleDialog(
                 buildString {
                     if (required.isNotEmpty()) {
                         append("Required for the app to work correctly:\n\n")
-                        required.forEach { append("$bullet ${it.displayName} — ${it.rationale}\n") }
+                        required.forEach { p ->
+                            append("$bullet ${p.displayName} — ${p.rationale}\n")
+                        }
                     }
                     if (optional.isNotEmpty()) {
                         append("Optional, enables extra features:\n\n")
-                        optional.forEach { append("$bullet ${it.displayName} — ${it.rationale}\n") }
+                        optional.forEach { p ->
+                            append("$bullet ${p.displayName} — ${p.rationale}\n")
+                        }
                     }
                 }
             )

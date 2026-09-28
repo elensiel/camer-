@@ -1,4 +1,4 @@
-package com.elensiel.camer_.processors
+package com.elensiel.camer_.processors.image
 
 import java.io.File
 

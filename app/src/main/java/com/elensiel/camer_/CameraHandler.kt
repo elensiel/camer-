@@ -258,7 +258,7 @@ class CameraHandler(
 
     fun resetZoom() = applyZoomRatio(1f)
 
-    private fun applyZoomRatio(ratio: Float) {
+    fun applyZoomRatio(ratio: Float) {
         val cam = camera ?: return
         val state = cam.cameraInfo.zoomState.value ?: return
         val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
