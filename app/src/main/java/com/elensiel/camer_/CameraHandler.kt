@@ -264,9 +264,4 @@ class CameraHandler(
         val clamped = ratio.coerceIn(state.minZoomRatio, state.maxZoomRatio)
         cam.cameraControl.setZoomRatio(clamped)
     }
-
-    // used by zoom slider ui
-    fun setLinearZoom(linear: Float) {
-        camera?.cameraControl?.setLinearZoom(linear.coerceIn(0f, 1f))
-    }
 }

@@ -154,7 +154,7 @@ private fun CameraScreen(
             context.startActivity(intent)
         },
 
-//        onSettingsClick = {},
+        onSettingsClick = {},
     )
 }
 
@@ -175,6 +175,7 @@ private fun CameraScreenPreview() {
                 Context.MODE_PRIVATE
             ),
         ),
+        {},
         {},
         {},
     )

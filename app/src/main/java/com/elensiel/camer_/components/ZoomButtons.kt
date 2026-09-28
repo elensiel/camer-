@@ -1,65 +1,56 @@
 package com.elensiel.camer_.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import com.elensiel.camer_.CameraHandler
+import kotlin.math.roundToInt
 
-private val ZoomPresets = listOf(0.5f, 1f, 2f, 5f, 10f)
-private const val EPSILON = 0.05f
+private val ZoomPresets = listOf(0.5f, 1f, 2f, 5f, 10f, 40f)
+
+// tolerance when comparing zoom ratios (floats never match exactly)
+private const val ZOOM_EPSILON = 0.05f
 
 @Composable
-fun ZoomButtons(
+internal fun ZoomButtons(
     modifier: Modifier = Modifier,
     cameraHandler: CameraHandler,
 ) {
     val zoom = cameraHandler.zoomRatio
+    val minZoom = cameraHandler.minZoomRatio
+    val maxZoom = cameraHandler.maxZoomRatio
 
-    val presets = ZoomPresets.filter {
-        it >= cameraHandler.minZoomRatio - EPSILON &&
-                it <= cameraHandler.maxZoomRatio + EPSILON
+    // only offer presets the current camera can actually reach
+    val presets = remember(minZoom, maxZoom) {
+        ZoomPresets.filter {
+            it >= minZoom - ZOOM_EPSILON && it <= maxZoom + ZOOM_EPSILON
+        }
     }
+
+    // not enough range to be worth showing
     if (presets.size < 2) return
 
     val activeIndex = presets
-        .indexOfLast { zoom >= it - EPSILON }
+        .indexOfLast { zoom >= it - ZOOM_EPSILON }
         .coerceAtLeast(0)
 
-    Row(
-        modifier = modifier.background(
-            color = Color.White.copy(alpha = 0.2f),
-            shape = RoundedCornerShape(50)
-        )
-    ) {
+    Row(modifier = modifier.glassPill()) {
         presets.forEachIndexed { index, preset ->
             val isActive = index == activeIndex
 
-            TextButton(
+            PillOption(
+                // the active button shows the live zoom instead of its preset
+                text = formatZoom(if (isActive) zoom else preset),
+                isActive = isActive,
                 onClick = { cameraHandler.applyZoomRatio(preset) },
-            ) {
-                Text(
-                    text =
-                        if (isActive) formatZoom(zoom)
-                        else formatZoom(preset),
-                    color =
-                        if (isActive) Color.White
-                        else Color.White.copy(alpha = 0.5f),
-                    fontWeight =
-                        if (isActive) FontWeight.Bold
-                        else FontWeight.Normal,
-                )
-            }
+            )
         }
     }
 }
 
+// 1.0 -> "1x", 2.34 -> "2.3x"
 private fun formatZoom(value: Float): String {
-    val rounded = Math.round(value * 10f) / 10f
-    return if (rounded * 1f == 0f) "${rounded.toInt()}x" else "${rounded}x"
+    val rounded = (value * 10f).roundToInt() / 10f
+    return if (rounded % 1f == 0f) "${rounded.toInt()}x" else "${rounded}x"
 }
