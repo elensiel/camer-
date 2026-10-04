@@ -5,7 +5,6 @@ import android.content.Context
 import com.elensiel.camer_.data.CameraRepository
 import com.elensiel.camer_.data.MediaRepository
 import com.elensiel.camer_.data.SettingsRepository
-import kotlin.getValue
 
 class App : Application() {
     val container by lazy { AppContainer(this) }

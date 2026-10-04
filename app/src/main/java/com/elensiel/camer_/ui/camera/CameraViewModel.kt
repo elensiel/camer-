@@ -80,8 +80,11 @@ class CameraViewModel(
 
     fun onSave() {
         val file = capturedFile.value ?: return
-        capturedFile.value = null
-        viewModelScope.launch { mediaRepo.discard(file) }
+        viewModelScope.launch {
+            runCatching { mediaRepo.save(file) }
+                .onSuccess { capturedFile.value = null }
+                .onFailure { Log.e("Camera", "Save failed.", it) }
+        }
     }
 
     fun onDiscard() {
@@ -96,6 +99,10 @@ class CameraViewModel(
             if (it == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT
             else CameraSelector.LENS_FACING_BACK
         }
+    }
+
+    fun onAspectRatio(ratio: AppAspectRatio) {
+        viewModelScope.launch { settingsRepo.setAspectRatio(ratio) }
     }
 
     fun onToggleFlash() {
