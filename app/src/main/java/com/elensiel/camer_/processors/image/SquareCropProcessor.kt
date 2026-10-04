@@ -28,7 +28,7 @@ class SquareCropProcessor : ImageProcessor {
             }
 
         FileOutputStream(input).use {
-            cropped.compress(Bitmap.CompressFormat.JPEG, 95, it)
+            cropped.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
         cropped.recycle()
 

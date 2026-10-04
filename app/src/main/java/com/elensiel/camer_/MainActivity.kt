@@ -9,9 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -76,8 +79,9 @@ fun App(
         )
     }
     val squareCropProcessor = remember { SquareCropProcessor() }
-    var capturedImage by remember { mutableStateOf<File?>(null) }
 
+    var capturedImage by remember { mutableStateOf<File?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     when {
         capturedImage == null -> {
@@ -86,19 +90,24 @@ fun App(
                 context = context,
                 cameraHandler = cameraHandler,
                 onPhotoCaptured = {
-                    // avoid capturing more than once
-                    // if user presses fast enough
-                    if (capturedImage == null) {
-                        if (cameraHandler.aspectRatio == AppAspectRatio.RATIO_1_1) {
-                            coroutineScope.launch {
-                                capturedImage = squareCropProcessor.process(it)
-                            }
-                        } else {
-                            capturedImage = it
+                    // guard against duplicate captures
+                    if (capturedImage != null) return@CameraScreen
+
+
+
+                    if (cameraHandler.aspectRatio == AppAspectRatio.RATIO_1_1) {
+                        isProcessing = true
+                        coroutineScope.launch {
+                            capturedImage = squareCropProcessor.process(it)
+                            isProcessing = false
                         }
+                    } else {
+                        capturedImage = it
                     }
                 },
             )
+
+            if (isProcessing) LoadingLayer(innerPadding)
         }
 
         else -> {
@@ -170,6 +179,24 @@ private fun CameraScreen(
     )
 }
 
+@Composable
+private fun LoadingLayer(
+    innerPadding: PaddingValues,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .background(
+                color = Color.Black.copy(alpha = 0.5f)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = Color.White.copy(alpha = 0.8f))
+    }
+}
+
 
 // UI DEBUGGING
 @Preview
@@ -191,4 +218,6 @@ private fun CameraScreenPreview() {
         {},
         {},
     )
+
+//    LoadingLayer()
 }
