@@ -1,10 +1,9 @@
-package com.elensiel.camer_.components
+package com.elensiel.camer_.ui.camera
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import com.elensiel.camer_.CameraHandler
 import kotlin.math.roundToInt
 
 private val ZoomPresets = listOf(0.5f, 1f, 2f, 5f, 10f, 40f)
@@ -15,16 +14,16 @@ private const val ZOOM_EPSILON = 0.05f
 @Composable
 internal fun ZoomButtons(
     modifier: Modifier = Modifier,
-    cameraHandler: CameraHandler,
+    zoomRatio: Float,
+    minZoomRatio: Float,
+    maxZoomRatio: Float,
+    onPreset: (Float) -> Unit,
 ) {
-    val zoom = cameraHandler.zoomRatio
-    val minZoom = cameraHandler.minZoomRatio
-    val maxZoom = cameraHandler.maxZoomRatio
 
     // only offer presets the current camera can actually reach
-    val presets = remember(minZoom, maxZoom) {
+    val presets = remember(minZoomRatio, maxZoomRatio) {
         ZoomPresets.filter {
-            it >= minZoom - ZOOM_EPSILON && it <= maxZoom + ZOOM_EPSILON
+            it >= minZoomRatio - ZOOM_EPSILON && it <= maxZoomRatio + ZOOM_EPSILON
         }
     }
 
@@ -32,7 +31,7 @@ internal fun ZoomButtons(
     if (presets.size < 2) return
 
     val activeIndex = presets
-        .indexOfLast { zoom >= it - ZOOM_EPSILON }
+        .indexOfLast { zoomRatio >= it - ZOOM_EPSILON }
         .coerceAtLeast(0)
 
     Row(modifier = modifier.glassPill()) {
@@ -41,9 +40,9 @@ internal fun ZoomButtons(
 
             PillOption(
                 // the active button shows the live zoom instead of its preset
-                text = formatZoom(if (isActive) zoom else preset),
+                text = formatZoom(if (isActive) zoomRatio else preset),
                 isActive = isActive,
-                onClick = { cameraHandler.applyZoomRatio(preset) },
+                onClick = { onPreset(preset) },
             )
         }
     }

@@ -1,4 +1,4 @@
-package com.elensiel.camer_.components
+package com.elensiel.camer_.ui.camera
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

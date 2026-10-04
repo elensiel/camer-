@@ -1,4 +1,4 @@
-package com.elensiel.camer_.components
+package com.elensiel.camer_.ui.camera
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.elensiel.camer_.CameraHandler
 import com.elensiel.camer_.R
 import com.elensiel.camer_.data.AppAspectRatio
 
@@ -23,8 +22,13 @@ private val EdgePadding = 24.dp
 @Composable
 fun CameraControls(
     modifier: Modifier = Modifier,
-    cameraHandler: CameraHandler,
+    state: CameraUiState,
     onCaptureClick: () -> Unit,
+    onFlipClick: () -> Unit,
+    onFlashClick: () -> Unit,
+    onTorchClick: () -> Unit,
+    onAspectRatioClick: (AppAspectRatio) -> Unit,
+    onZoomPreset: (Float) -> Unit,
     onGalleryClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
@@ -32,7 +36,7 @@ fun CameraControls(
 
         // -- Top-left: flash & torch (only if the device has a flash unit) --
 
-        if (cameraHandler.hasFlashUnit) {
+        if (state.hasFlashUnit) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -40,18 +44,18 @@ fun CameraControls(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ActionButton(
-                    onClick = { cameraHandler.toggleFlashMode() },
+                    onClick = onFlashClick,
                     icon = painterResource(
-                        if (cameraHandler.flashEnabled) R.drawable.camera_flash_on
+                        if (state.flashEnabled) R.drawable.camera_flash_on
                         else R.drawable.camera_flash_off
                     ),
                     contentDescription = "Flash",
                 )
 
                 ActionButton(
-                    onClick = { cameraHandler.toggleTorch() },
+                    onClick = onTorchClick,
                     icon = painterResource(
-                        if (cameraHandler.torchEnabled) R.drawable.torch_on
+                        if (state.torchEnabled) R.drawable.torch_on
                         else R.drawable.torch_off
                     ),
                     contentDescription = "Torch",
@@ -79,15 +83,23 @@ fun CameraControls(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ZoomButtons(cameraHandler = cameraHandler)
-
-            CaptureRow(
-                cameraHandler = cameraHandler,
-                onCaptureClick = onCaptureClick,
-                onGalleryClick = onGalleryClick,
+            ZoomButtons(
+                zoomRatio = state.zoomRatio,
+                minZoomRatio = state.minZoomRatio,
+                maxZoomRatio = state.maxZoomRatio,
+                onPreset = onZoomPreset,
             )
 
-            AspectRatioSelector(cameraHandler = cameraHandler)
+            CaptureRow(
+                onCaptureClick = onCaptureClick,
+                onGalleryClick = onGalleryClick,
+                onFlipClick = onFlipClick,
+            )
+
+            AspectRatioSelector(
+                selected = state.aspectRatio,
+                onSelect = onAspectRatioClick
+            )
         }
     }
 }
@@ -100,9 +112,9 @@ fun CameraControls(
 @Composable
 private fun CaptureRow(
     modifier: Modifier = Modifier,
-    cameraHandler: CameraHandler,
     onCaptureClick: () -> Unit,
     onGalleryClick: () -> Unit,
+    onFlipClick: () -> Unit,
 ) {
     Row(
         modifier = modifier
@@ -124,7 +136,7 @@ private fun CaptureRow(
         )
 
         ActionButton(
-            onClick = { cameraHandler.flipCamera() },
+            onClick = onFlipClick,
             icon = painterResource(R.drawable.camera_flip),
             contentDescription = "Flip camera",
         )
@@ -134,14 +146,15 @@ private fun CaptureRow(
 @Composable
 private fun AspectRatioSelector(
     modifier: Modifier = Modifier,
-    cameraHandler: CameraHandler,
+    selected: AppAspectRatio,
+    onSelect: (AppAspectRatio) -> Unit,
 ) {
     Row(modifier = modifier.glassPill()) {
         AppAspectRatio.entries.forEach { ratio ->
             PillOption(
                 text = ratio.label,
-                isActive = cameraHandler.aspectRatio == ratio,
-                onClick = { cameraHandler.applyAspectRatio(ratio) },
+                isActive = selected == ratio,
+                onClick = { onSelect(ratio) },
             )
         }
     }

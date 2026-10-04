@@ -60,6 +60,10 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.compose)
     implementation(libs.coil.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.lifecycle.livedata.ktx)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(project(":permission"))
 }

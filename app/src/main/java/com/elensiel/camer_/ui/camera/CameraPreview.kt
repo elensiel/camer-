@@ -1,6 +1,7 @@
-package com.elensiel.camer_.components
+package com.elensiel.camer_.ui.camera
 
 import androidx.camera.compose.CameraXViewfinder
+import androidx.camera.core.MeteringPoint
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
@@ -14,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -21,7 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import com.elensiel.camer_.CameraHandler
+import com.elensiel.camer_.data.AppAspectRatio
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -30,14 +32,11 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
-    cameraHandler: CameraHandler,
+    surfaceRequest: SurfaceRequest?,
+    aspectRatio: AppAspectRatio,
+    onTapFocus: (MeteringPoint) -> Unit,
+    onZoom: (Float) -> Unit,
 ) {
-
-    // ---------------------------------------------------------------
-    // State
-    // ---------------------------------------------------------------
-
-    var surfaceRequest by remember { mutableStateOf<SurfaceRequest?>(null) }
     val coordinateTransformer = remember { MutableCoordinateTransformer() }
 
     var focusPoint by remember { mutableStateOf<Offset?>(null) }
@@ -47,22 +46,6 @@ fun CameraPreview(
         label = "focusAlpha",
     )
 
-    // ---------------------------------------------------------------
-    // Lifecycle / effects
-    // ---------------------------------------------------------------
-
-    LaunchedEffect(Unit) {
-        cameraHandler.startCamera()
-    }
-
-    // Reattaches the surface provider whenever CameraHandler builds a
-    // new Preview instance (camera flip, aspect ratio change, etc.)
-    LaunchedEffect(cameraHandler.preview) {
-        cameraHandler.setSurfaceProvider { request ->
-            surfaceRequest = request
-        }
-    }
-
     // Clears the focus indicator dot after a short delay
     LaunchedEffect(focusPoint) {
         if (focusPoint != null) {
@@ -71,32 +54,28 @@ fun CameraPreview(
         }
     }
 
-    // ---------------------------------------------------------------
-    // Gesture handling
-    // ---------------------------------------------------------------
+    val currentOnTapFocus by rememberUpdatedState(onTapFocus)
+    val currentOnZoom by rememberUpdatedState(onZoom)
 
     fun Modifier.cameraGestures(request: SurfaceRequest): Modifier =
-        pointerInput(cameraHandler, request) {
+        pointerInput(request) {
             coroutineScope {
                 launch {
                     detectTapGestures { offset ->
-                        val surfaceOffset = with(coordinateTransformer) { offset.transform() }
+                        val s = with(coordinateTransformer) { offset.transform() }
 
                         val factory = SurfaceOrientedMeteringPointFactory(
                             request.resolution.width.toFloat(),
                             request.resolution.height.toFloat(),
                         )
-                        val point = factory.createPoint(surfaceOffset.x, surfaceOffset.y)
 
-                        cameraHandler.focusOnPoint(point)
+                        currentOnTapFocus(factory.createPoint(s.x, s.y))
                         focusPoint = offset
                     }
                 }
 
                 launch {
-                    detectTransformGestures { _, _, zoom, _ ->
-                        cameraHandler.zoomBy(zoom)
-                    }
+                    detectTransformGestures { _, _, zoom, _ -> currentOnZoom(zoom) }
                 }
             }
         }
@@ -109,14 +88,16 @@ fun CameraPreview(
         CameraXViewfinder(
             surfaceRequest = request,
             modifier = modifier
-                .aspectRatio(cameraHandler.aspectRatio.floatValue)
+                .aspectRatio(aspectRatio.floatValue)
                 .cameraGestures(request)
                 .drawWithContent {
                     drawContent()
 
                     focusPoint?.let {
                         drawCircle(
-                            color = Color.Yellow.copy(alpha = focusAlpha.coerceAtLeast(0.5f)),
+                            color = Color.Yellow.copy(
+                                alpha = focusAlpha.coerceAtLeast(0.5f)
+                            ),
                             radius = 45f,
                             center = it,
                             style = Stroke(width = 3f),

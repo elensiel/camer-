@@ -1,34 +1,27 @@
 package com.elensiel.camer_
 
-import android.content.Context
-import android.content.Intent
+import android.Manifest
 import android.os.Bundle
-import android.provider.MediaStore
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.elensiel.camer_.components.CameraControls
-import com.elensiel.camer_.components.CameraPreview
-import com.elensiel.camer_.components.CapturedImagePreview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.elensiel.camer_.ui.camera.CameraScreen
+import com.elensiel.camer_.ui.camera.CapturedImagePreview
+import com.elensiel.camer_.ui.camera.CameraViewModel
 import com.elensiel.camer_.ui.theme.CamerTheme
+import com.elensiel.permission.PermissionData
 import com.elensiel.permission.PermissionGate
-import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,53 +30,50 @@ class MainActivity : ComponentActivity() {
         setContent {
             CamerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    PermissionGate(permissions = CameraPermissions.permissions) {
+                    PermissionGate(permissions = permissions) {
                         App(innerPadding)
                     }
                 }
             }
         }
     }
+
+    companion object {
+        private val permissions = listOf(
+            PermissionData(
+                Manifest.permission.CAMERA,
+                "Camera",
+                "Needed to take photos with the app.",
+            )
+        )
+    }
 }
 
 @Composable
 fun App(
-    innerPadding: PaddingValues
+    innerPadding: PaddingValues,
+    viewModel: CameraViewModel = viewModel(factory = CameraViewModel.Factory)
 ) {
-    val context = LocalContext.current
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val sharedPreferences = remember {
-        context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
+
+    LaunchedEffect(state.lensFacing, state.aspectRatio, lifecycleOwner) {
+        viewModel.bindCamera(lifecycleOwner, state.lensFacing, state.aspectRatio)
     }
 
-    val cameraHandler = remember {
-        CameraHandler(
-            context = context,
-            lifecycleOwner = lifecycleOwner,
-            prefs = sharedPreferences,
-        )
-    }
-    val capturedImageHandler = remember {
-        CapturedImageHandler(
-            context,
-            "jpeg",
-            "DCIM/camer-",
-        )
-    }
-    var capturedImage by remember { mutableStateOf<File?>(null) }
+    val file = state.capturedFile
 
     when {
-        capturedImage == null -> {
-            CameraScreen(
-                innerPadding = innerPadding,
-                context = context,
-                cameraHandler = cameraHandler,
-                onPhotoCaptured = {
-                    // guard against duplicate captures
-                    if (capturedImage != null) return@CameraScreen
-                    capturedImage = it
-                },
-            )
+        file == null -> {
+            surfaceRequest?.let {
+                CameraScreen(
+                    innerPadding = innerPadding,
+                    state = state,
+                    surfaceRequest = it,
+                    viewModel = viewModel,
+                )
+            }
         }
 
         else -> {
@@ -91,90 +81,10 @@ fun App(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                photoFile = capturedImage!!,
-
-                onSave = {
-                    capturedImageHandler.saveImage(
-                        photoFile = capturedImage!!,
-                        onSaved = { capturedImage = null },
-                        onError = { exception ->
-                            Log.e("Camera", "Save failed", exception)
-                        }
-                    )
-                },
-
-                onDiscard = {
-                    capturedImageHandler.discardPhoto(capturedImage!!)
-                    capturedImage = null
-                }
+                photoFile = file,
+                onSave = viewModel::onSave,
+                onDiscard = viewModel::onDiscard,
             )
         }
     }
-}
-
-@Composable
-private fun CameraScreen(
-    innerPadding: PaddingValues,
-    context: Context,
-    cameraHandler: CameraHandler,
-    onPhotoCaptured: (File) -> Unit,
-) {
-    CameraPreview(
-        modifier = Modifier.fillMaxSize(),
-        cameraHandler,
-    )
-
-    CameraControls(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
-        cameraHandler = cameraHandler,
-
-        onCaptureClick = {
-            cameraHandler.takePhoto(
-                onPhotoCaptured = onPhotoCaptured,
-                onError = { exception ->
-                    Log.e("Camera", "Capture failed", exception)
-                }
-            )
-        },
-
-        onGalleryClick = {
-            val intent = Intent().apply {
-                action = Intent.ACTION_VIEW
-                setDataAndType(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    "image/*"
-                )
-            }
-
-            context.startActivity(intent)
-        },
-
-        onSettingsClick = {},
-    )
-}
-
-// UI DEBUGGING
-@Preview
-@Composable
-private fun CameraScreenPreview() {
-    CameraControls(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        CameraHandler(
-            LocalContext.current,
-            LocalLifecycleOwner.current,
-            prefs = LocalContext.current.getSharedPreferences(
-                "user_preferences",
-                Context.MODE_PRIVATE
-            ),
-        ),
-        {},
-        {},
-        {},
-    )
-
-//    LoadingLayer()
 }
