@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +27,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.elensiel.camer_.components.CameraControls
 import com.elensiel.camer_.components.CameraPreview
 import com.elensiel.camer_.components.CapturedImagePreview
+import com.elensiel.camer_.data.AppAspectRatio
+import com.elensiel.camer_.processors.image.SquareCropProcessor
 import com.elensiel.camer_.ui.theme.CamerTheme
 import com.elensiel.permission.PermissionGate
+import kotlinx.coroutines.launch
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -52,6 +56,7 @@ fun App(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
     val sharedPreferences = remember {
         context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
     }
@@ -70,6 +75,7 @@ fun App(
             "DCIM/camer-",
         )
     }
+    val squareCropProcessor = remember { SquareCropProcessor() }
     var capturedImage by remember { mutableStateOf<File?>(null) }
 
 
@@ -83,7 +89,13 @@ fun App(
                     // avoid capturing more than once
                     // if user presses fast enough
                     if (capturedImage == null) {
-                        capturedImage = it
+                        if (cameraHandler.aspectRatio == AppAspectRatio.RATIO_1_1) {
+                            coroutineScope.launch {
+                                capturedImage = squareCropProcessor.process(it)
+                            }
+                        } else {
+                            capturedImage = it
+                        }
                     }
                 },
             )
