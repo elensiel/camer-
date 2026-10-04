@@ -9,6 +9,8 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.MeteringPoint
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.ViewPort
 import androidx.camera.core.ZoomState
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -83,13 +85,25 @@ class CameraHandler(
             .setResolutionSelector(resolutionSelector)
             .build()
 
+        val viewPort = ViewPort.Builder(
+            aspectRatio.viewPortRational,
+            preview.targetRotation,
+        )
+            .setScaleType(ViewPort.FILL_CENTER)
+            .build()
+
+        val useCaseGroup = UseCaseGroup.Builder()
+            .setViewPort(viewPort)
+            .addUseCase(preview)
+            .addUseCase(imageCapture!!)
+            .build()
+
         provider.unbindAll()
 
         camera = provider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
-            preview,
-            imageCapture,
+            useCaseGroup,
         )
 
         // restore flash/torch/zoom state on the newly bound camera

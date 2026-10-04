@@ -3,6 +3,7 @@ package com.elensiel.camer_.components
 import androidx.camera.compose.CameraXViewfinder
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.SurfaceRequest
+import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,8 +21,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
 import com.elensiel.camer_.CameraHandler
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -39,7 +38,7 @@ fun CameraPreview(
     // ---------------------------------------------------------------
 
     var surfaceRequest by remember { mutableStateOf<SurfaceRequest?>(null) }
-    var previewSize by remember { mutableStateOf(IntSize.Zero) }
+    val coordinateTransformer = remember { MutableCoordinateTransformer() }
 
     var focusPoint by remember { mutableStateOf<Offset?>(null) }
     val focusAlpha by animateFloatAsState(
@@ -76,30 +75,31 @@ fun CameraPreview(
     // Gesture handling
     // ---------------------------------------------------------------
 
-    fun Modifier.cameraGestures(): Modifier = pointerInput(cameraHandler, previewSize) {
-        coroutineScope {
-            launch {
-                detectTapGestures { offset ->
-                    if (previewSize.width == 0 || previewSize.height == 0) return@detectTapGestures
+    fun Modifier.cameraGestures(request: SurfaceRequest): Modifier =
+        pointerInput(cameraHandler, request) {
+            coroutineScope {
+                launch {
+                    detectTapGestures { offset ->
+                        val surfaceOffset = with(coordinateTransformer) { offset.transform() }
 
-                    val factory = SurfaceOrientedMeteringPointFactory(
-                        previewSize.width.toFloat(),
-                        previewSize.height.toFloat(),
-                    )
-                    val point = factory.createPoint(offset.x, offset.y)
+                        val factory = SurfaceOrientedMeteringPointFactory(
+                            request.resolution.width.toFloat(),
+                            request.resolution.height.toFloat(),
+                        )
+                        val point = factory.createPoint(surfaceOffset.x, surfaceOffset.y)
 
-                    cameraHandler.focusOnPoint(point)
-                    focusPoint = offset
+                        cameraHandler.focusOnPoint(point)
+                        focusPoint = offset
+                    }
                 }
-            }
 
-            launch {
-                detectTransformGestures { _, _, zoom, _ ->
-                    cameraHandler.zoomBy(zoom)
+                launch {
+                    detectTransformGestures { _, _, zoom, _ ->
+                        cameraHandler.zoomBy(zoom)
+                    }
                 }
             }
         }
-    }
 
     // ---------------------------------------------------------------
     // UI
@@ -110,8 +110,7 @@ fun CameraPreview(
             surfaceRequest = request,
             modifier = modifier
                 .aspectRatio(cameraHandler.aspectRatio.floatValue)
-                .onSizeChanged { previewSize = it }
-                .cameraGestures()
+                .cameraGestures(request)
                 .drawWithContent {
                     drawContent()
 
@@ -123,7 +122,8 @@ fun CameraPreview(
                             style = Stroke(width = 3f),
                         )
                     }
-                }
+                },
+            coordinateTransformer = coordinateTransformer,
         )
     }
 }

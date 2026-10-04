@@ -9,19 +9,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -30,11 +26,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.elensiel.camer_.components.CameraControls
 import com.elensiel.camer_.components.CameraPreview
 import com.elensiel.camer_.components.CapturedImagePreview
-import com.elensiel.camer_.data.AppAspectRatio
-import com.elensiel.camer_.processors.image.SquareCropProcessor
 import com.elensiel.camer_.ui.theme.CamerTheme
 import com.elensiel.permission.PermissionGate
-import kotlinx.coroutines.launch
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -59,7 +52,6 @@ fun App(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val coroutineScope = rememberCoroutineScope()
     val sharedPreferences = remember {
         context.getSharedPreferences("user_preferences", Context.MODE_PRIVATE)
     }
@@ -74,14 +66,11 @@ fun App(
     val capturedImageHandler = remember {
         CapturedImageHandler(
             context,
-            "jpg",
+            "jpeg",
             "DCIM/camer-",
         )
     }
-    val squareCropProcessor = remember { SquareCropProcessor() }
-
     var capturedImage by remember { mutableStateOf<File?>(null) }
-    var isProcessing by remember { mutableStateOf(false) }
 
     when {
         capturedImage == null -> {
@@ -92,22 +81,9 @@ fun App(
                 onPhotoCaptured = {
                     // guard against duplicate captures
                     if (capturedImage != null) return@CameraScreen
-
-
-
-                    if (cameraHandler.aspectRatio == AppAspectRatio.RATIO_1_1) {
-                        isProcessing = true
-                        coroutineScope.launch {
-                            capturedImage = squareCropProcessor.process(it)
-                            isProcessing = false
-                        }
-                    } else {
-                        capturedImage = it
-                    }
+                    capturedImage = it
                 },
             )
-
-            if (isProcessing) LoadingLayer(innerPadding)
         }
 
         else -> {
@@ -178,25 +154,6 @@ private fun CameraScreen(
         onSettingsClick = {},
     )
 }
-
-@Composable
-private fun LoadingLayer(
-    innerPadding: PaddingValues,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .background(
-                color = Color.Black.copy(alpha = 0.5f)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(color = Color.White.copy(alpha = 0.8f))
-    }
-}
-
 
 // UI DEBUGGING
 @Preview
