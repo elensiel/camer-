@@ -4,6 +4,7 @@ import androidx.camera.core.SurfaceRequest
 import androidx.lifecycle.LifecycleOwner
 import com.elensiel.camer_.domain.model.CameraState
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.LensFacing
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 
@@ -13,7 +14,7 @@ interface CameraRepository {
 
     suspend fun bind(
         lifecycleOwner: LifecycleOwner,
-        lensFacing: Int,
+        lensFacing: LensFacing,
         aspectRatio: CaptureAspectRatio,
     )
 

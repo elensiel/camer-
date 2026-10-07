@@ -1,7 +1,6 @@
 package com.elensiel.camer_.presentation.camera
 
 import android.util.Log
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.SurfaceRequest
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.LifecycleOwner
@@ -12,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elensiel.camer_.CamApp
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
 import com.elensiel.camer_.domain.repository.MediaRepository
 import com.elensiel.camer_.domain.repository.SettingsRepository
@@ -31,7 +31,7 @@ class CameraViewModel(
     private val settingsRepo: SettingsRepository,
     private val mediaRepo: MediaRepository,
 ) : ViewModel() {
-    private val lensFacing = MutableStateFlow(CameraSelector.LENS_FACING_BACK)
+    private val lensFacing = MutableStateFlow(LensFacing.BACK)
     private val capturedFile = MutableStateFlow<File?>(null)
 
     val surfaceRequest: StateFlow<SurfaceRequest?> = cameraRepo.surfaceRequest
@@ -66,7 +66,7 @@ class CameraViewModel(
         }
     }
 
-    suspend fun bindCamera(owner: LifecycleOwner, lens: Int, ratio: CaptureAspectRatio) =
+    suspend fun bindCamera(owner: LifecycleOwner, lens: LensFacing, ratio: CaptureAspectRatio) =
         cameraRepo.bind(owner, lens, ratio)
 
     fun onCapture() {
@@ -95,10 +95,7 @@ class CameraViewModel(
 
     fun onFlip() {
         cameraRepo.setTorch(false)
-        lensFacing.update {
-            if (it == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT
-            else CameraSelector.LENS_FACING_BACK
-        }
+        lensFacing.update { it.flip() }
     }
 
     fun onAspectRatio(ratio: CaptureAspectRatio) {

@@ -44,5 +44,6 @@ class MediaStoreRepository(
         uri
     }
 
-    override suspend fun discard(photoFile: File): Unit = withContext(Dispatchers.IO) { photoFile.delete() }
+    override suspend fun discard(photoFile: File): Unit =
+        withContext(Dispatchers.IO) { photoFile.delete() }
 }

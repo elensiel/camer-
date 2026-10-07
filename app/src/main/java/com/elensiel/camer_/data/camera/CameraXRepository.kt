@@ -1,7 +1,6 @@
-package com.elensiel.camer_.data
+package com.elensiel.camer_.data.camera
 
 import android.content.Context
-import android.util.Size
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -21,6 +20,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import com.elensiel.camer_.domain.model.CameraState
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +38,6 @@ class CameraXRepository(private val context: Context) : CameraRepository {
     private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
     private var flashEnabled = false
-    private var surfaceResolution: Size? = null
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
     override val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
@@ -48,7 +47,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
 
     override suspend fun bind(
         lifecycleOwner: LifecycleOwner,
-        lensFacing: Int,
+        lensFacing: LensFacing,
         aspectRatio: CaptureAspectRatio,
     ) {
         val provider = ProcessCameraProvider.awaitInstance(context)
@@ -56,7 +55,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         val resolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(
                 AspectRatioStrategy(
-                    aspectRatio.ratioInt,
+                    aspectRatio.toCameraXRatio(),
                     AspectRatioStrategy.FALLBACK_RULE_AUTO
                 )
             )
@@ -65,12 +64,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         val preview = Preview.Builder()
             .setResolutionSelector(resolutionSelector)
             .build()
-            .also {
-                it.setSurfaceProvider { request ->
-                    surfaceResolution = request.resolution
-                    _surfaceRequest.value = request
-                }
-            }
+            .also { it.setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -78,7 +72,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             .build()
             .also { it.flashMode = flashMode() }
 
-        val viewPort = ViewPort.Builder(aspectRatio.viewPortRational, preview.targetRotation)
+        val viewPort = ViewPort.Builder(aspectRatio.toViewPortRational(), preview.targetRotation)
             .setScaleType(ViewPort.FILL_CENTER)
             .build()
 
@@ -91,7 +85,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         provider.unbindAll()
         val cam = provider.bindToLifecycle(
             lifecycleOwner,
-            CameraSelector.Builder().requireLensFacing(lensFacing).build(),
+            CameraSelector.Builder().requireLensFacing(lensFacing.toCameraX()).build(),
             useCaseGroup,
         )
         camera = cam
@@ -161,7 +155,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
     }
 
     override fun focusOn(x: Float, y: Float) {
-        val res = surfaceResolution ?: return
+        val res = _surfaceRequest.value?.resolution ?: return
 
         val point = SurfaceOrientedMeteringPointFactory(
             res.width.toFloat(),
