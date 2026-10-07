@@ -1,4 +1,4 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.camera
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.elensiel.camer_.R
-import com.elensiel.camer_.data.AppAspectRatio
+import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.presentation.components.ActionButton
+import com.elensiel.camer_.presentation.components.PillOption
+import com.elensiel.camer_.presentation.components.ZoomButtons
+import com.elensiel.camer_.presentation.components.glassPill
 
 private val EdgePadding = 24.dp
 
@@ -27,7 +31,7 @@ fun CameraControls(
     onFlipClick: () -> Unit,
     onFlashClick: () -> Unit,
     onTorchClick: () -> Unit,
-    onAspectRatioClick: (AppAspectRatio) -> Unit,
+    onAspectRatioClick: (CaptureAspectRatio) -> Unit,
     onZoomPreset: (Float) -> Unit,
     onGalleryClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -146,11 +150,11 @@ private fun CaptureRow(
 @Composable
 private fun AspectRatioSelector(
     modifier: Modifier = Modifier,
-    selected: AppAspectRatio,
-    onSelect: (AppAspectRatio) -> Unit,
+    selected: CaptureAspectRatio,
+    onSelect: (CaptureAspectRatio) -> Unit,
 ) {
     Row(modifier = modifier.glassPill()) {
-        AppAspectRatio.entries.forEach { ratio ->
+        CaptureAspectRatio.entries.forEach { ratio ->
             PillOption(
                 text = ratio.label,
                 isActive = selected == ratio,

@@ -1,20 +1,20 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.camera
 
 import android.util.Log
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.MeteringPoint
 import androidx.camera.core.SurfaceRequest
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.elensiel.camer_.App
-import com.elensiel.camer_.data.AppAspectRatio
-import com.elensiel.camer_.data.CameraRepository
-import com.elensiel.camer_.data.MediaRepository
-import com.elensiel.camer_.data.SettingsRepository
+import com.elensiel.camer_.CamApp
+import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.repository.CameraRepository
+import com.elensiel.camer_.domain.repository.MediaRepository
+import com.elensiel.camer_.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,7 +66,7 @@ class CameraViewModel(
         }
     }
 
-    suspend fun bindCamera(owner: LifecycleOwner, lens: Int, ratio: AppAspectRatio) =
+    suspend fun bindCamera(owner: LifecycleOwner, lens: Int, ratio: CaptureAspectRatio) =
         cameraRepo.bind(owner, lens, ratio)
 
     fun onCapture() {
@@ -101,7 +101,7 @@ class CameraViewModel(
         }
     }
 
-    fun onAspectRatio(ratio: AppAspectRatio) {
+    fun onAspectRatio(ratio: CaptureAspectRatio) {
         viewModelScope.launch { settingsRepo.setAspectRatio(ratio) }
     }
 
@@ -110,18 +110,18 @@ class CameraViewModel(
     }
 
     fun onToggleTorch() = cameraRepo.setTorch(!uiState.value.torchEnabled)
-    fun onFocus(point: MeteringPoint) = cameraRepo.focusOn(point)
+    fun onFocus(point: Offset) = cameraRepo.focusOn(point.x, point.y)
     fun onZoomBy(factor: Float) = cameraRepo.zoomBy(factor)
     fun onZoomTo(ratio: Float) = cameraRepo.setZoom(ratio)
 
     companion object {
         val Factory = viewModelFactory {
             initializer {
-                val c = (this[APPLICATION_KEY] as App).container
+                val c = (this[APPLICATION_KEY] as CamApp).container
                 CameraViewModel(
                     c.cameraRepository,
                     c.settingsRepository,
-                    c.mediaRepository
+                    c.mediaRepository,
                 )
             }
         }

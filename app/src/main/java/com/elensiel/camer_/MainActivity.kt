@@ -16,10 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.elensiel.camer_.ui.camera.CameraScreen
-import com.elensiel.camer_.ui.camera.CapturedImagePreview
-import com.elensiel.camer_.ui.camera.CameraViewModel
-import com.elensiel.camer_.ui.theme.CamerTheme
+import com.elensiel.camer_.presentation.camera.CameraScreen
+import com.elensiel.camer_.presentation.review.ImageReviewScreen
+import com.elensiel.camer_.presentation.camera.CameraViewModel
+import com.elensiel.camer_.presentation.theme.CamerTheme
 import com.elensiel.permission.PermissionData
 import com.elensiel.permission.PermissionGate
 
@@ -77,7 +77,7 @@ fun App(
         }
 
         else -> {
-            CapturedImagePreview(
+            ImageReviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),

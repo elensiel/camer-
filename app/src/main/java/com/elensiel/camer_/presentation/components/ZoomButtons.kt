@@ -1,4 +1,4 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable

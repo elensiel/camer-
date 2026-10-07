@@ -1,4 +1,4 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.review
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +16,7 @@ import coil3.compose.AsyncImage
 import java.io.File
 
 @Composable
-fun CapturedImagePreview(
+fun ImageReviewScreen(
     modifier: Modifier = Modifier,
     photoFile: File,
     onSave: () -> Unit,

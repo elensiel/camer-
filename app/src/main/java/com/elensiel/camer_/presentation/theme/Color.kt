@@ -1,4 +1,4 @@
-package com.elensiel.camer_.ui.theme
+package com.elensiel.camer_.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 

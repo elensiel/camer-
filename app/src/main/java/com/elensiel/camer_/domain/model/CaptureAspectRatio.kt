@@ -1,9 +1,9 @@
-package com.elensiel.camer_.data
+package com.elensiel.camer_.domain.model
 
 import android.util.Rational
 import androidx.camera.core.AspectRatio
 
-enum class AppAspectRatio(
+enum class CaptureAspectRatio(
     val ratioInt: Int,
     val floatValue: Float,
     val label: String,

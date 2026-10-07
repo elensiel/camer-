@@ -4,17 +4,18 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
+import com.elensiel.camer_.domain.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-class MediaRepository(
+class MediaStoreRepository(
     private val context: Context,
     private val mimeType: String,
     private val saveDirectory: String,
-) {
-    suspend fun save(photoFile: File): Uri = withContext(Dispatchers.IO) {
+) : MediaRepository {
+    override suspend fun save(photoFile: File): Uri = withContext(Dispatchers.IO) {
         val values = ContentValues().apply {
             put(
                 MediaStore.Images.Media.DISPLAY_NAME,
@@ -43,5 +44,5 @@ class MediaRepository(
         uri
     }
 
-    suspend fun discard(photoFile: File) = withContext(Dispatchers.IO) { photoFile.delete() }
+    override suspend fun discard(photoFile: File): Unit = withContext(Dispatchers.IO) { photoFile.delete() }
 }

@@ -1,4 +1,4 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.camera
 
 import android.content.Intent
 import android.provider.MediaStore

@@ -1,8 +1,6 @@
-package com.elensiel.camer_.ui.camera
+package com.elensiel.camer_.presentation.camera
 
 import androidx.camera.compose.CameraXViewfinder
-import androidx.camera.core.MeteringPoint
-import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.viewfinder.compose.MutableCoordinateTransformer
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,7 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import com.elensiel.camer_.data.AppAspectRatio
+import com.elensiel.camer_.domain.model.CaptureAspectRatio
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,8 +31,8 @@ import kotlin.time.Duration.Companion.milliseconds
 fun CameraPreview(
     modifier: Modifier = Modifier,
     surfaceRequest: SurfaceRequest?,
-    aspectRatio: AppAspectRatio,
-    onTapFocus: (MeteringPoint) -> Unit,
+    aspectRatio: CaptureAspectRatio,
+    onTapFocus: (Offset) -> Unit,
     onZoom: (Float) -> Unit,
 ) {
     val coordinateTransformer = remember { MutableCoordinateTransformer() }
@@ -63,13 +61,7 @@ fun CameraPreview(
                 launch {
                     detectTapGestures { offset ->
                         val s = with(coordinateTransformer) { offset.transform() }
-
-                        val factory = SurfaceOrientedMeteringPointFactory(
-                            request.resolution.width.toFloat(),
-                            request.resolution.height.toFloat(),
-                        )
-
-                        currentOnTapFocus(factory.createPoint(s.x, s.y))
+                        currentOnTapFocus(s)
                         focusPoint = offset
                     }
                 }

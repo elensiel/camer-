@@ -1,13 +1,14 @@
 package com.elensiel.camer_.data
 
 import android.content.Context
+import android.util.Size
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.MeteringPoint
 import androidx.camera.core.Preview
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.SurfaceRequest
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.ViewPort
@@ -18,6 +19,9 @@ import androidx.camera.lifecycle.awaitInstance
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
+import com.elensiel.camer_.domain.model.CameraState
+import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.repository.CameraRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,29 +34,22 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-data class CameraState(
-    val hasFlashUnit: Boolean = true,
-    val torchEnabled: Boolean = false,
-    val zoomRatio: Float = 1f,
-    val minZoomRatio: Float = 1f,
-    val maxZoomRatio: Float = 1f,
-)
-
-class CameraRepository(private val context: Context) {
+class CameraXRepository(private val context: Context) : CameraRepository {
     private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
     private var flashEnabled = false
+    private var surfaceResolution: Size? = null
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
-    val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
+    override val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
 
     private val _state = MutableStateFlow(CameraState())
-    val state = _state.asStateFlow()
+    override val state = _state.asStateFlow()
 
-    suspend fun bind(
+    override suspend fun bind(
         lifecycleOwner: LifecycleOwner,
         lensFacing: Int,
-        aspectRatio: AppAspectRatio,
+        aspectRatio: CaptureAspectRatio,
     ) {
         val provider = ProcessCameraProvider.awaitInstance(context)
 
@@ -68,7 +65,12 @@ class CameraRepository(private val context: Context) {
         val preview = Preview.Builder()
             .setResolutionSelector(resolutionSelector)
             .build()
-            .also { it.setSurfaceProvider { request -> _surfaceRequest.value = request } }
+            .also {
+                it.setSurfaceProvider { request ->
+                    surfaceResolution = request.resolution
+                    _surfaceRequest.value = request
+                }
+            }
 
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
@@ -116,7 +118,7 @@ class CameraRepository(private val context: Context) {
         }
     }
 
-    suspend fun takePhoto(): File = suspendCancellableCoroutine { cont ->
+    override suspend fun takePhoto(): File = suspendCancellableCoroutine { cont ->
         val capture = imageCapture ?: run {
             cont.resumeWithException(IllegalStateException("Camera not bound."))
             return@suspendCancellableCoroutine
@@ -147,18 +149,25 @@ class CameraRepository(private val context: Context) {
         )
     }
 
-    fun setFlashEnabled(enabled: Boolean) {
+    override fun setFlashEnabled(enabled: Boolean) {
         flashEnabled = enabled
         imageCapture?.flashMode = flashMode()
     }
 
-    fun setTorch(enabled: Boolean) {
+    override fun setTorch(enabled: Boolean) {
         if (!_state.value.hasFlashUnit) return
         _state.update { it.copy(torchEnabled = enabled) }
         camera?.cameraControl?.enableTorch(enabled)
     }
 
-    fun focusOn(point: MeteringPoint) {
+    override fun focusOn(x: Float, y: Float) {
+        val res = surfaceResolution ?: return
+
+        val point = SurfaceOrientedMeteringPointFactory(
+            res.width.toFloat(),
+            res.height.toFloat()
+        ).createPoint(x, y)
+
         camera?.cameraControl?.startFocusAndMetering(
             FocusMeteringAction.Builder(
                 point, FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
@@ -166,12 +175,12 @@ class CameraRepository(private val context: Context) {
         )
     }
 
-    fun setZoom(ratio: Float) {
+    override fun setZoom(ratio: Float) {
         val s = _state.value
         camera?.cameraControl?.setZoomRatio(ratio.coerceIn(s.minZoomRatio, s.maxZoomRatio))
     }
 
-    fun zoomBy(factor: Float) = setZoom(_state.value.zoomRatio * factor)
+    override fun zoomBy(factor: Float) = setZoom(_state.value.zoomRatio * factor)
 
     private fun flashMode() =
         if (flashEnabled) ImageCapture.FLASH_MODE_ON
