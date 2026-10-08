@@ -55,16 +55,13 @@ fun App(
     viewModel: CameraViewModel = viewModel(factory = CameraViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val config by viewModel.bindConfig.collectAsStateWithLifecycle()
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(state.lensFacing, state.aspectRatio, state.imageFormat, lifecycleOwner) {
-        viewModel.bindCamera(
-            lifecycleOwner,
-            state.lensFacing,
-            state.aspectRatio,
-            state.imageFormat,
-        )
+    LaunchedEffect(config, lifecycleOwner) {
+        val c = config ?: return@LaunchedEffect
+        viewModel.bindCamera(lifecycleOwner, c)
     }
 
     val file = state.capturedFile

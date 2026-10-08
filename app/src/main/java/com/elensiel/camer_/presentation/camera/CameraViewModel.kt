@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elensiel.camer_.CamApp
+import com.elensiel.camer_.domain.model.BindConfig
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
 import com.elensiel.camer_.domain.model.CapturedImage
 import com.elensiel.camer_.domain.model.ImageFormat
@@ -33,21 +34,29 @@ class CameraViewModel(
     private val mediaRepo: MediaRepository,
 ) : ViewModel() {
     private val lensFacing = MutableStateFlow(LensFacing.BACK)
-    private val imageFormat = MutableStateFlow(ImageFormat.JPEG)
     private val capturedPhoto = MutableStateFlow<CapturedImage?>(null)
+
+    val bindConfig: StateFlow<BindConfig?> = combine(
+        settingsRepo.settings,
+        lensFacing,
+    ) { settings, lens ->
+        BindConfig(
+            lensFacing = lens,
+            aspectRatio = settings.aspectRatio,
+            imageFormat = settings.imageFormat,
+        )
+    }.distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val surfaceRequest: StateFlow<SurfaceRequest?> = cameraRepo.surfaceRequest
 
     val uiState: StateFlow<CameraUiState> = combine(
         settingsRepo.settings,
         cameraRepo.state,
-        lensFacing,
         capturedPhoto,
-    ) { settings, cam, lens, photo ->
+    ) { settings, cam, photo ->
         CameraUiState(
-            lensFacing = lens,
             aspectRatio = settings.aspectRatio,
-            imageFormat = settings.imageFormat,
             flashEnabled = settings.flashEnabled,
             torchEnabled = cam.torchEnabled,
             hasFlashUnit = cam.hasFlashUnit,
@@ -70,9 +79,11 @@ class CameraViewModel(
     }
 
     suspend fun bindCamera(
-        owner: LifecycleOwner, lensFacing: LensFacing,
-        ratio: CaptureAspectRatio, imageFormat: ImageFormat,
-    ) = cameraRepo.bind(owner, lensFacing, ratio, imageFormat)
+        owner: LifecycleOwner,
+        config: BindConfig,
+    ) = cameraRepo.bind(
+        owner, config.lensFacing, config.aspectRatio, config.imageFormat
+    )
 
     fun onCapture() {
         if (capturedPhoto.value != null) return
@@ -86,7 +97,7 @@ class CameraViewModel(
     fun onSave() {
         val photo = capturedPhoto.value ?: return
         viewModelScope.launch {
-            runCatching { mediaRepo.save(photo.file, imageFormat.value) }
+            runCatching { bindConfig.value?.let { mediaRepo.save(photo.file, it.imageFormat) } }
                 .onSuccess { capturedPhoto.value = null }
                 .onFailure { Log.e("Camera", "Save failed.", it) }
         }

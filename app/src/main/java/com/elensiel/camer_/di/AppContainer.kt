@@ -9,5 +9,5 @@ class AppContainer(context: Context) {
     val settingsRepository = DataStoreSettingsRepository(context)
     val cameraRepository = CameraXRepository(context)
     val mediaRepository =
-        MediaStoreRepository(context, mimeType = "jpeg", saveDirectory = "DCIM/camer-")
+        MediaStoreRepository(context, saveDirectory = "DCIM/camer-")
 }
