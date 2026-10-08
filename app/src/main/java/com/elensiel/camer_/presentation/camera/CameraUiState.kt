@@ -1,8 +1,6 @@
 package com.elensiel.camer_.presentation.camera
 
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
-import com.elensiel.camer_.domain.model.ImageFormat
-import com.elensiel.camer_.domain.model.LensFacing
 import java.io.File
 
 data class CameraUiState(

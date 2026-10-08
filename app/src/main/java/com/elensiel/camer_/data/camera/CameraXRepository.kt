@@ -1,7 +1,6 @@
 package com.elensiel.camer_.data.camera
 
 import android.content.Context
-import android.util.Log
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -141,7 +140,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         val capture = imageCapture
         val format = imageFormat
 
-         if (capture == null || format == null) {
+        if (capture == null || format == null) {
             cont.resumeWithException(IllegalStateException("Camera not bound."))
             return@suspendCancellableCoroutine
         }

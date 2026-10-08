@@ -16,6 +16,7 @@ fun CameraScreen(
     state: CameraUiState,
     surfaceRequest: SurfaceRequest,
     viewModel: CameraViewModel,
+    onOpenAdvancedSettings: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -44,5 +45,6 @@ fun CameraScreen(
             )
         },
         onSettingsClick = {},
+        onAdvancedSettingsClick = onOpenAdvancedSettings,
     )
 }

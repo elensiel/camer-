@@ -12,6 +12,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elensiel.camer_.presentation.camera.CameraScreen
 import com.elensiel.camer_.presentation.camera.CameraViewModel
 import com.elensiel.camer_.presentation.review.ImageReviewScreen
+import com.elensiel.camer_.presentation.settings.AdvancedSettingsScreen
 import com.elensiel.camer_.presentation.theme.CamerTheme
 import com.elensiel.permission.PermissionData
 import com.elensiel.permission.PermissionGate
@@ -58,6 +62,7 @@ fun App(
     val config by viewModel.bindConfig.collectAsStateWithLifecycle()
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var showSettings by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(config, lifecycleOwner) {
         val c = config ?: return@LaunchedEffect
@@ -67,18 +72,7 @@ fun App(
     val file = state.capturedFile
 
     when {
-        file == null -> {
-            surfaceRequest?.let {
-                CameraScreen(
-                    innerPadding = innerPadding,
-                    state = state,
-                    surfaceRequest = it,
-                    viewModel = viewModel,
-                )
-            }
-        }
-
-        else -> {
+        file != null -> {
             ImageReviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
@@ -87,6 +81,25 @@ fun App(
                 onSave = viewModel::onSave,
                 onDiscard = viewModel::onDiscard,
             )
+        }
+
+        showSettings -> AdvancedSettingsScreen(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            onBack = { showSettings = false },
+        )
+
+        else -> {
+            surfaceRequest?.let {
+                CameraScreen(
+                    innerPadding = innerPadding,
+                    state = state,
+                    surfaceRequest = it,
+                    viewModel = viewModel,
+                    onOpenAdvancedSettings = { showSettings = true },
+                )
+            }
         }
     }
 }

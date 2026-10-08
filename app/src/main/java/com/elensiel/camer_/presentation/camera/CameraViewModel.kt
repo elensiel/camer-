@@ -97,7 +97,7 @@ class CameraViewModel(
     fun onSave() {
         val photo = capturedPhoto.value ?: return
         viewModelScope.launch {
-            runCatching { bindConfig.value?.let { mediaRepo.save(photo.file, it.imageFormat) } }
+            runCatching { mediaRepo.save(photo.file, photo.format) }
                 .onSuccess { capturedPhoto.value = null }
                 .onFailure { Log.e("Camera", "Save failed.", it) }
         }
@@ -118,9 +118,7 @@ class CameraViewModel(
         viewModelScope.launch { settingsRepo.setAspectRatio(ratio) }
     }
 
-    fun onImageFormat(format: ImageFormat) {
-        viewModelScope.launch { settingsRepo.setImageFormat(format) }
-    }
+
 
     fun onToggleFlash() {
         viewModelScope.launch { settingsRepo.setFlashEnabled(!uiState.value.flashEnabled) }

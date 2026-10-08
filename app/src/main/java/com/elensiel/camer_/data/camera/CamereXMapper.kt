@@ -28,12 +28,12 @@ internal fun LensFacing.toCameraX() = when (this) {
 internal fun ImageFormat.toCameraXFormat() = when (this) {
     ImageFormat.JPEG -> ImageCapture.OUTPUT_FORMAT_JPEG
     ImageFormat.ULTRA_HDR -> ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR
-    ImageFormat.RAW -> ImageCapture.OUTPUT_FORMAT_RAW
+//    ImageFormat.RAW -> ImageCapture.OUTPUT_FORMAT_RAW
 }
 
 internal fun Int.toImageFormat() = when (this) {
     ImageCapture.OUTPUT_FORMAT_JPEG -> ImageFormat.JPEG
     ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR -> ImageFormat.ULTRA_HDR
-    ImageCapture.OUTPUT_FORMAT_RAW -> ImageFormat.RAW
+//    ImageCapture.OUTPUT_FORMAT_RAW -> ImageFormat.RAW
     else -> null
 }
