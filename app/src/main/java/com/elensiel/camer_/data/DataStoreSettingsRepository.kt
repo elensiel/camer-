@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.Settings
 import com.elensiel.camer_.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -17,13 +18,19 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 class DataStoreSettingsRepository(private val context: Context) : SettingsRepository {
     private val aspectKey = stringPreferencesKey("aspect_ratio")
     private val flashKey = booleanPreferencesKey("flash_enabled")
+    private val imageFormatKey = stringPreferencesKey("image_format")
 
     override val settings: Flow<Settings> = context.dataStore.data.map { p ->
         Settings(
             aspectRatio = p[aspectKey]
                 ?.let { runCatching { CaptureAspectRatio.valueOf(it) }.getOrNull() }
                 ?: CaptureAspectRatio.RATIO_4_3,
+
             flashEnabled = p[flashKey] ?: false,
+
+            imageFormat = p[imageFormatKey]
+                ?.let { runCatching { ImageFormat.valueOf(it) }.getOrNull() }
+                ?: ImageFormat.JPEG,
         )
     }
 
@@ -33,5 +40,9 @@ class DataStoreSettingsRepository(private val context: Context) : SettingsReposi
 
     override suspend fun setFlashEnabled(enabled: Boolean) {
         context.dataStore.edit { it[flashKey] = enabled }
+    }
+
+    override suspend fun setImageFormat(format: ImageFormat) {
+        context.dataStore.edit { it[imageFormatKey] = format.name }
     }
 }

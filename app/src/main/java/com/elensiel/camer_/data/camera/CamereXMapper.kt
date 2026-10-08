@@ -3,7 +3,9 @@ package com.elensiel.camer_.data.camera
 import android.util.Rational
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 
 internal fun CaptureAspectRatio.toCameraXRatio() = when (this) {
@@ -21,4 +23,16 @@ internal fun CaptureAspectRatio.toViewPortRational() = when (this) {
 internal fun LensFacing.toCameraX() = when (this) {
     LensFacing.BACK -> CameraSelector.LENS_FACING_BACK
     LensFacing.FRONT -> CameraSelector.LENS_FACING_FRONT
+}
+
+internal fun ImageFormat.toCameraXFormat() = when (this) {
+    ImageFormat.JPEG -> ImageCapture.OUTPUT_FORMAT_JPEG
+    ImageFormat.ULTRA_HDR -> ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR
+    ImageFormat.RAW -> ImageCapture.OUTPUT_FORMAT_RAW
+}
+
+internal fun Int.toImageFormat() = when (this) {
+    ImageCapture.OUTPUT_FORMAT_JPEG -> ImageFormat.JPEG
+    ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR -> ImageFormat.ULTRA_HDR
+    else -> null
 }

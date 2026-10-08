@@ -17,8 +17,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elensiel.camer_.presentation.camera.CameraScreen
-import com.elensiel.camer_.presentation.review.ImageReviewScreen
 import com.elensiel.camer_.presentation.camera.CameraViewModel
+import com.elensiel.camer_.presentation.review.ImageReviewScreen
 import com.elensiel.camer_.presentation.theme.CamerTheme
 import com.elensiel.permission.PermissionData
 import com.elensiel.permission.PermissionGate
@@ -52,14 +52,19 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun App(
     innerPadding: PaddingValues,
-    viewModel: CameraViewModel = viewModel(factory = CameraViewModel.Factory)
+    viewModel: CameraViewModel = viewModel(factory = CameraViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val surfaceRequest by viewModel.surfaceRequest.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(state.lensFacing, state.aspectRatio, lifecycleOwner) {
-        viewModel.bindCamera(lifecycleOwner, state.lensFacing, state.aspectRatio)
+    LaunchedEffect(state.lensFacing, state.aspectRatio, state.imageFormat, lifecycleOwner) {
+        viewModel.bindCamera(
+            lifecycleOwner,
+            state.lensFacing,
+            state.aspectRatio,
+            state.imageFormat,
+        )
     }
 
     val file = state.capturedFile

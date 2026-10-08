@@ -1,6 +1,7 @@
 package com.elensiel.camer_.data.camera
 
 import android.content.Context
+import android.util.Log
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -20,6 +21,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import com.elensiel.camer_.domain.model.CameraState
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +40,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
     private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
     private var flashEnabled = false
+    private var imageFormat: ImageFormat? = null
 
     private val _surfaceRequest = MutableStateFlow<SurfaceRequest?>(null)
     override val surfaceRequest: StateFlow<SurfaceRequest?> = _surfaceRequest.asStateFlow()
@@ -49,6 +52,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         lifecycleOwner: LifecycleOwner,
         lensFacing: LensFacing,
         aspectRatio: CaptureAspectRatio,
+        format: ImageFormat,
     ) {
         val provider = ProcessCameraProvider.awaitInstance(context)
 
@@ -66,9 +70,22 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             .build()
             .also { it.setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(lensFacing.toCameraX())
+            .build()
+
+        val supportedFormats: Set<ImageFormat> = ImageCapture
+            .getImageCaptureCapabilities(provider.getCameraInfo(cameraSelector))
+            .supportedOutputFormats
+            .mapNotNull { it.toImageFormat() }
+            .toSet()
+
+        val effectiveFormat = if (format in supportedFormats) format else ImageFormat.JPEG
+
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setResolutionSelector(resolutionSelector)
+            .setOutputFormat(effectiveFormat.toCameraXFormat())
             .build()
             .also { it.flashMode = flashMode() }
 
@@ -85,13 +102,19 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         provider.unbindAll()
         val cam = provider.bindToLifecycle(
             lifecycleOwner,
-            CameraSelector.Builder().requireLensFacing(lensFacing.toCameraX()).build(),
+            cameraSelector,
             useCaseGroup,
         )
         camera = cam
         imageCapture = capture
+        imageFormat = effectiveFormat
 
-        _state.update { it.copy(hasFlashUnit = cam.cameraInfo.hasFlashUnit()) }
+        _state.update {
+            it.copy(
+                hasFlashUnit = cam.cameraInfo.hasFlashUnit(),
+                supportedFormats = supportedFormats
+            )
+        }
         cam.cameraControl.enableTorch(_state.value.torchEnabled)
 
         try {
@@ -108,6 +131,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             if (camera === cam) {
                 camera = null
                 imageCapture = null
+                imageFormat = null
             }
         }
     }
@@ -125,7 +149,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
 
         val photoFile = File(
             context.cacheDir,
-            "$name.jpg"
+            "$name.${imageFormat?.fileExtension}"
         )
 
         capture.takePicture(

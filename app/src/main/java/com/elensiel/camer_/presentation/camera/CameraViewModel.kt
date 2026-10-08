@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elensiel.camer_.CamApp
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
 import com.elensiel.camer_.domain.repository.MediaRepository
@@ -33,6 +34,7 @@ class CameraViewModel(
 ) : ViewModel() {
     private val lensFacing = MutableStateFlow(LensFacing.BACK)
     private val capturedFile = MutableStateFlow<File?>(null)
+    private val imageFormat = MutableStateFlow(ImageFormat.JPEG)
 
     val surfaceRequest: StateFlow<SurfaceRequest?> = cameraRepo.surfaceRequest
 
@@ -40,11 +42,13 @@ class CameraViewModel(
         settingsRepo.settings,
         cameraRepo.state,
         lensFacing,
+        imageFormat,
         capturedFile,
-    ) { settings, cam, lens, file ->
+    ) { settings, cam, lens, format, file ->
         CameraUiState(
             lensFacing = lens,
             aspectRatio = settings.aspectRatio,
+            imageFormat = format,
             flashEnabled = settings.flashEnabled,
             torchEnabled = cam.torchEnabled,
             hasFlashUnit = cam.hasFlashUnit,
@@ -66,8 +70,10 @@ class CameraViewModel(
         }
     }
 
-    suspend fun bindCamera(owner: LifecycleOwner, lens: LensFacing, ratio: CaptureAspectRatio) =
-        cameraRepo.bind(owner, lens, ratio)
+    suspend fun bindCamera(
+        owner: LifecycleOwner, lensFacing: LensFacing,
+        ratio: CaptureAspectRatio, imageFormat: ImageFormat,
+    ) = cameraRepo.bind(owner, lensFacing, ratio, imageFormat)
 
     fun onCapture() {
         if (capturedFile.value != null) return
@@ -81,7 +87,7 @@ class CameraViewModel(
     fun onSave() {
         val file = capturedFile.value ?: return
         viewModelScope.launch {
-            runCatching { mediaRepo.save(file) }
+            runCatching { mediaRepo.save(file, imageFormat.value) }
                 .onSuccess { capturedFile.value = null }
                 .onFailure { Log.e("Camera", "Save failed.", it) }
         }
@@ -100,6 +106,10 @@ class CameraViewModel(
 
     fun onAspectRatio(ratio: CaptureAspectRatio) {
         viewModelScope.launch { settingsRepo.setAspectRatio(ratio) }
+    }
+
+    fun onImageFormat(format: ImageFormat) {
+        viewModelScope.launch { settingsRepo.setImageFormat(format) }
     }
 
     fun onToggleFlash() {

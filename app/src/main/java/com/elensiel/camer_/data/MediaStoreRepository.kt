@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
+import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.repository.MediaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,15 +16,18 @@ class MediaStoreRepository(
     private val mimeType: String,
     private val saveDirectory: String,
 ) : MediaRepository {
-    override suspend fun save(photoFile: File): Uri = withContext(Dispatchers.IO) {
+    override suspend fun save(
+        photoFile: File,
+        format: ImageFormat,
+    ): Uri = withContext(Dispatchers.IO) {
         val values = ContentValues().apply {
             put(
                 MediaStore.Images.Media.DISPLAY_NAME,
-                "${photoFile.nameWithoutExtension}.${mimeType}",
+                "${photoFile.nameWithoutExtension}.${format.fileExtension}",
             )
             put(
                 MediaStore.Images.Media.MIME_TYPE,
-                "image/${mimeType}",
+                format.mimeType,
             )
             put(
                 MediaStore.Images.Media.RELATIVE_PATH,
