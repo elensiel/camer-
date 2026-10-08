@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elensiel.camer_.CamApp
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.CapturedImage
 import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 class CameraViewModel(
     private val cameraRepo: CameraRepository,
@@ -33,8 +33,8 @@ class CameraViewModel(
     private val mediaRepo: MediaRepository,
 ) : ViewModel() {
     private val lensFacing = MutableStateFlow(LensFacing.BACK)
-    private val capturedFile = MutableStateFlow<File?>(null)
     private val imageFormat = MutableStateFlow(ImageFormat.JPEG)
+    private val capturedPhoto = MutableStateFlow<CapturedImage?>(null)
 
     val surfaceRequest: StateFlow<SurfaceRequest?> = cameraRepo.surfaceRequest
 
@@ -42,20 +42,19 @@ class CameraViewModel(
         settingsRepo.settings,
         cameraRepo.state,
         lensFacing,
-        imageFormat,
-        capturedFile,
-    ) { settings, cam, lens, format, file ->
+        capturedPhoto,
+    ) { settings, cam, lens, photo ->
         CameraUiState(
             lensFacing = lens,
             aspectRatio = settings.aspectRatio,
-            imageFormat = format,
+            imageFormat = settings.imageFormat,
             flashEnabled = settings.flashEnabled,
             torchEnabled = cam.torchEnabled,
             hasFlashUnit = cam.hasFlashUnit,
             zoomRatio = cam.zoomRatio,
             minZoomRatio = cam.minZoomRatio,
             maxZoomRatio = cam.maxZoomRatio,
-            capturedFile = file
+            capturedFile = photo?.file,
         )
     }.stateIn(
         viewModelScope,
@@ -76,27 +75,27 @@ class CameraViewModel(
     ) = cameraRepo.bind(owner, lensFacing, ratio, imageFormat)
 
     fun onCapture() {
-        if (capturedFile.value != null) return
+        if (capturedPhoto.value != null) return
         viewModelScope.launch {
             runCatching { cameraRepo.takePhoto() }
-                .onSuccess { if (capturedFile.value == null) capturedFile.value = it }
+                .onSuccess { if (capturedPhoto.value == null) capturedPhoto.value = it }
                 .onFailure { Log.e("Camera", "Capture failed.", it) }
         }
     }
 
     fun onSave() {
-        val file = capturedFile.value ?: return
+        val photo = capturedPhoto.value ?: return
         viewModelScope.launch {
-            runCatching { mediaRepo.save(file, imageFormat.value) }
-                .onSuccess { capturedFile.value = null }
+            runCatching { mediaRepo.save(photo.file, imageFormat.value) }
+                .onSuccess { capturedPhoto.value = null }
                 .onFailure { Log.e("Camera", "Save failed.", it) }
         }
     }
 
     fun onDiscard() {
-        val file = capturedFile.value ?: return
-        capturedFile.value = null
-        viewModelScope.launch { mediaRepo.discard(file) }
+        val photo = capturedPhoto.value ?: return
+        capturedPhoto.value = null
+        viewModelScope.launch { mediaRepo.discard(photo.file) }
     }
 
     fun onFlip() {

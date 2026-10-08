@@ -34,5 +34,6 @@ internal fun ImageFormat.toCameraXFormat() = when (this) {
 internal fun Int.toImageFormat() = when (this) {
     ImageCapture.OUTPUT_FORMAT_JPEG -> ImageFormat.JPEG
     ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR -> ImageFormat.ULTRA_HDR
+    ImageCapture.OUTPUT_FORMAT_RAW -> ImageFormat.RAW
     else -> null
 }

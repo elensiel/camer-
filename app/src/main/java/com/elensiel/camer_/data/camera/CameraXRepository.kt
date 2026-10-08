@@ -21,6 +21,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import com.elensiel.camer_.domain.model.CameraState
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
+import com.elensiel.camer_.domain.model.CapturedImage
 import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
@@ -136,8 +137,11 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         }
     }
 
-    override suspend fun takePhoto(): File = suspendCancellableCoroutine { cont ->
-        val capture = imageCapture ?: run {
+    override suspend fun takePhoto(): CapturedImage = suspendCancellableCoroutine { cont ->
+        val capture = imageCapture
+        val format = imageFormat
+
+         if (capture == null || format == null) {
             cont.resumeWithException(IllegalStateException("Camera not bound."))
             return@suspendCancellableCoroutine
         }
@@ -149,7 +153,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
 
         val photoFile = File(
             context.cacheDir,
-            "$name.${imageFormat?.fileExtension}"
+            "$name.${format.fileExtension}"
         )
 
         capture.takePicture(
@@ -157,7 +161,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    cont.resume(photoFile)
+                    cont.resume(CapturedImage(photoFile, format))
                 }
 
                 override fun onError(exception: ImageCaptureException) {

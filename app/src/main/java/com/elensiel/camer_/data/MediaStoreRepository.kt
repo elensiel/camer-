@@ -13,7 +13,6 @@ import java.io.IOException
 
 class MediaStoreRepository(
     private val context: Context,
-    private val mimeType: String,
     private val saveDirectory: String,
 ) : MediaRepository {
     override suspend fun save(

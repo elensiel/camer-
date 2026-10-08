@@ -6,6 +6,6 @@ enum class ImageFormat(
     val mimeType: String,
 ) {
     JPEG("JPEG", "jpeg", "image/jpeg"),
-    ULTRA_HDR("Ultra HDR", "jpeg_r", "image/jpeg_r"),
-    RAW("Raw", "raw", "image/raw"),
+    ULTRA_HDR("Ultra HDR", "jpg", "image/jpeg_r"),
+    RAW("RAW", "dng", "image/x-adobe-dng"),
 }
