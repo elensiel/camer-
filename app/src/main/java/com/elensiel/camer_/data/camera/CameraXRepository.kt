@@ -20,7 +20,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.asFlow
 import com.elensiel.camer_.domain.model.CameraState
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
-import com.elensiel.camer_.domain.model.CapturedImage
+import com.elensiel.camer_.domain.model.CapturedPhoto
 import com.elensiel.camer_.domain.model.ImageFormat
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
@@ -136,7 +136,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
         }
     }
 
-    override suspend fun takePhoto(): CapturedImage = suspendCancellableCoroutine { cont ->
+    override suspend fun takePhoto(): CapturedPhoto = suspendCancellableCoroutine { cont ->
         val capture = imageCapture
         val format = imageFormat
 
@@ -160,7 +160,7 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    cont.resume(CapturedImage(photoFile, format))
+                    cont.resume(CapturedPhoto(photoFile, format))
                 }
 
                 override fun onError(exception: ImageCaptureException) {

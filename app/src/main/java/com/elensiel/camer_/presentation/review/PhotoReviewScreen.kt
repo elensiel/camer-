@@ -16,7 +16,7 @@ import coil3.compose.AsyncImage
 import java.io.File
 
 @Composable
-fun ImageReviewScreen(
+fun PhotoReviewScreen(
     modifier: Modifier = Modifier,
     photoFile: File,
     onSave: () -> Unit,

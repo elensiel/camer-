@@ -11,5 +11,5 @@ data class CameraUiState(
     val zoomRatio: Float = 1f,
     val minZoomRatio: Float = 1f,
     val maxZoomRatio: Float = 1f,
-    val capturedFile: File? = null,
+    val capturedPhotoFile: File? = null,
 )

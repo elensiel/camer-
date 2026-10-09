@@ -12,8 +12,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.elensiel.camer_.CamApp
 import com.elensiel.camer_.domain.model.BindConfig
 import com.elensiel.camer_.domain.model.CaptureAspectRatio
-import com.elensiel.camer_.domain.model.CapturedImage
-import com.elensiel.camer_.domain.model.ImageFormat
+import com.elensiel.camer_.domain.model.CapturedPhoto
 import com.elensiel.camer_.domain.model.LensFacing
 import com.elensiel.camer_.domain.repository.CameraRepository
 import com.elensiel.camer_.domain.repository.MediaRepository
@@ -34,7 +33,7 @@ class CameraViewModel(
     private val mediaRepo: MediaRepository,
 ) : ViewModel() {
     private val lensFacing = MutableStateFlow(LensFacing.BACK)
-    private val capturedPhoto = MutableStateFlow<CapturedImage?>(null)
+    private val capturedPhoto = MutableStateFlow<CapturedPhoto?>(null)
 
     val bindConfig: StateFlow<BindConfig?> = combine(
         settingsRepo.settings,
@@ -63,7 +62,7 @@ class CameraViewModel(
             zoomRatio = cam.zoomRatio,
             minZoomRatio = cam.minZoomRatio,
             maxZoomRatio = cam.maxZoomRatio,
-            capturedFile = photo?.file,
+            capturedPhotoFile = photo?.file,
         )
     }.stateIn(
         viewModelScope,

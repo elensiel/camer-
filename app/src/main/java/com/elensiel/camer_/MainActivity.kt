@@ -21,7 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.elensiel.camer_.presentation.camera.CameraScreen
 import com.elensiel.camer_.presentation.camera.CameraViewModel
-import com.elensiel.camer_.presentation.review.ImageReviewScreen
+import com.elensiel.camer_.presentation.review.PhotoReviewScreen
 import com.elensiel.camer_.presentation.settings.AdvancedSettingsScreen
 import com.elensiel.camer_.presentation.theme.CamerTheme
 import com.elensiel.permission.PermissionData
@@ -69,11 +69,11 @@ fun App(
         viewModel.bindCamera(lifecycleOwner, c)
     }
 
-    val file = state.capturedFile
+    val file = state.capturedPhotoFile
 
     when {
         file != null -> {
-            ImageReviewScreen(
+            PhotoReviewScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
