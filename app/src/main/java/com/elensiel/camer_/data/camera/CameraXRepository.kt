@@ -48,14 +48,68 @@ class CameraXRepository(private val context: Context) : CameraRepository {
     private val _state = MutableStateFlow(CameraState())
     override val state = _state.asStateFlow()
 
+    /**
+     * Binds the camera to [lifecycleOwner] and starts the preview.
+     *
+     * Steps:
+     *  1. Get the provider and the camera selector
+     *  2. Resolve the capture format (what the camera supports)
+     *  3. Build the use cases (Preview + ImageCapture)
+     *  4. Group them with a ViewPort so both crop the same region
+     *  5. Unbind the old camera, bind the new one
+     *  6. Publish state to the UI
+     *  7. Collect zoom state (suspends until cancelled)
+     *
+     * This function SUSPENDS FOREVER: step 7 collects a flow that never completes.
+     * It returns only when the calling coroutine is cancelled (LaunchedEffect keys
+     * change: lens flip, aspect ratio, or format). Cancellation runs the `finally`
+     * block, which clears the references. Call it from a long-lived coroutine.
+     *
+     * Every call does a full unbind/rebind.
+     *
+     * @param format requested output format. Falls back to JPEG if the camera
+     *   can't produce it.
+     */
     override suspend fun bind(
         lifecycleOwner: LifecycleOwner,
         lensFacing: LensFacing,
         aspectRatio: CaptureAspectRatio,
         format: ImageFormat,
     ) {
+        // ---------------------------------------------------------------
+        // 1. Provider and camera selector
+        // ---------------------------------------------------------------
+
+        // Suspends until CameraX's singleton provider is ready.
         val provider = ProcessCameraProvider.awaitInstance(context)
 
+        // Built once: used to query capabilities (step 2) and to bind (step 5).
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(lensFacing.toCameraX())
+            .build()
+
+        // ---------------------------------------------------------------
+        // 2. Format resolution (per lens, so recomputed per bind)
+        // ---------------------------------------------------------------
+
+        val nativeFormats: Set<ImageFormat> = ImageCapture
+            .getImageCaptureCapabilities(provider.getCameraInfo(cameraSelector))
+            .supportedOutputFormats
+            .mapNotNull { it.toImageFormat() }
+            .toSet()
+
+        // PNG/WEBP aren't native; presumably converted after capture, so always offered.
+        val supportedFormats = nativeFormats + setOf(ImageFormat.PNG, ImageFormat.WEBP)
+
+        // Fall back to JPEG if the camera can't produce the requested format.
+        val effectiveFormat = if (format in supportedFormats) format else ImageFormat.JPEG
+
+        // ---------------------------------------------------------------
+        // 3. Use cases
+        // ---------------------------------------------------------------
+
+        // Shared by Preview and ImageCapture so both use the same ratio.
+        // AUTO fallback picks the closest ratio if the exact one is unsupported.
         val resolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(
                 AspectRatioStrategy(
@@ -65,23 +119,19 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             )
             .build()
 
+        // Instead of a PreviewView, Preview hands us a SurfaceRequest, published
+        // through _surfaceRequest. The Compose CameraXViewfinder collects it and
+        // supplies the actual surface.
         val preview = Preview.Builder()
             .setResolutionSelector(resolutionSelector)
             .build()
             .also { it.setSurfaceProvider { request -> _surfaceRequest.value = request } }
 
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(lensFacing.toCameraX())
-            .build()
-
-        val supportedFormats: Set<ImageFormat> = ImageCapture
-            .getImageCaptureCapabilities(provider.getCameraInfo(cameraSelector))
-            .supportedOutputFormats
-            .mapNotNull { it.toImageFormat() }
-            .toSet()
-
-        val effectiveFormat = if (format in supportedFormats) format else ImageFormat.JPEG
-
+        // MINIMIZE_LATENCY favors shutter speed over quality.
+        // Flash mode is applied now so the current setting survives a rebind.
+        // NOTE: setOutputFormat gets effectiveFormat, which may differ from
+        // [format]. PNG/WEBP are not native, so verify they map to a native
+        // format in toCameraXFormat().
         val capture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setResolutionSelector(resolutionSelector)
@@ -89,35 +139,63 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             .build()
             .also { it.flashMode = flashMode() }
 
+        // ---------------------------------------------------------------
+        // 4. ViewPort + use case group
+        // ---------------------------------------------------------------
+
+        // Makes Preview and ImageCapture crop to the same region, so the saved
+        // photo matches what the user saw. This is how 1:1 works: the sensor
+        // streams 4:3 and the ViewPort crops to a square.
+        // FILL_CENTER crops the excess evenly instead of letterboxing.
         val viewPort = ViewPort.Builder(aspectRatio.toViewPortRational(), preview.targetRotation)
             .setScaleType(ViewPort.FILL_CENTER)
             .build()
 
+        // The ViewPort only takes effect when use cases are bound as a group.
         val useCaseGroup = UseCaseGroup.Builder()
             .setViewPort(viewPort)
             .addUseCase(preview)
             .addUseCase(capture)
             .build()
 
+        // ---------------------------------------------------------------
+        // 5. Rebind
+        // ---------------------------------------------------------------
+
+        // Release the previous binding (flip, ratio, or format change) first.
         provider.unbindAll()
         val cam = provider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
             useCaseGroup,
         )
+
+        // Keep handles for the other methods (takePhoto, setTorch, focusOn, zoom).
         camera = cam
         imageCapture = capture
         imageFormat = effectiveFormat
 
+        // ---------------------------------------------------------------
+        // 6. Publish state
+        // ---------------------------------------------------------------
+
+        // Lets the UI hide the flash buttons or unsupported formats.
         _state.update {
             it.copy(
                 hasFlashUnit = cam.cameraInfo.hasFlashUnit(),
                 supportedFormats = supportedFormats
             )
         }
+
+        // Re-apply the torch state, since unbindAll() turned it off.
         cam.cameraControl.enableTorch(_state.value.torchEnabled)
 
+        // ---------------------------------------------------------------
+        // 7. Zoom collection (never completes, so bind() never returns)
+        // ---------------------------------------------------------------
+
         try {
+            // Mirror CameraX's zoom state (pinch or preset) into our state.
             cam.cameraInfo.zoomState.asFlow().collect { z ->
                 _state.update {
                     it.copy(
@@ -128,6 +206,9 @@ class CameraXRepository(private val context: Context) : CameraRepository {
                 }
             }
         } finally {
+            // Runs on cancellation. The identity check (===) stops an old,
+            // cancelled bind() from wiping the handles of a NEWER bind() that
+            // already replaced them.
             if (camera === cam) {
                 camera = null
                 imageCapture = null
@@ -150,9 +231,15 @@ class CameraXRepository(private val context: Context) : CameraRepository {
             Locale.getDefault()
         ).format(System.currentTimeMillis())
 
+        // captured photo is still a native format at this point
+        val tempFileExtension =
+            if (format.needsTranscoding) "jpg"
+            else format.fileExtension
+
+        // create and store the photo in cache
         val photoFile = File(
             context.cacheDir,
-            "$name.${format.fileExtension}"
+            "$name.${tempFileExtension}"
         )
 
         capture.takePicture(
