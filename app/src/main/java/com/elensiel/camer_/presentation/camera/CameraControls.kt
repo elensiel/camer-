@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +21,9 @@ import com.elensiel.camer_.presentation.components.ActionButton
 import com.elensiel.camer_.presentation.components.PillOption
 import com.elensiel.camer_.presentation.components.ZoomButtons
 import com.elensiel.camer_.presentation.components.glassPill
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 private val EdgePadding = 24.dp
 
@@ -42,7 +43,6 @@ fun CameraControls(
     onZoomPreset: (Float) -> Unit,
     onGalleryClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onAdvancedSettingsClick: () -> Unit,
 ) {
     Box(modifier = modifier) {
 
@@ -58,8 +58,8 @@ fun CameraControls(
                 ActionButton(
                     onClick = onFlashClick,
                     icon = painterResource(
-                        if (state.flashEnabled) R.drawable.camera_flash_on
-                        else R.drawable.camera_flash_off
+                        if (state.flashEnabled) R.drawable.flash_on
+                        else R.drawable.flash_off
                     ),
                     contentDescription = "Flash",
                 )
@@ -67,8 +67,8 @@ fun CameraControls(
                 ActionButton(
                     onClick = onTorchClick,
                     icon = painterResource(
-                        if (state.torchEnabled) R.drawable.torch_on
-                        else R.drawable.torch_off
+                        if (state.torchEnabled) R.drawable.flashlight_on
+                        else R.drawable.flashlight_off
                     ),
                     contentDescription = "Torch",
                 )
@@ -77,32 +77,16 @@ fun CameraControls(
 
         // -- Top-right: settings dropdown menu --
 
-        Box(
+        ActionButton(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = EdgePadding, top = EdgePadding)
-        ) {
-            var menuExpanded by remember { mutableStateOf(false) }
-
-            ActionButton(
-                onClick = { menuExpanded = true },
-                icon = painterResource(R.drawable.settings),
-                contentDescription = "Settings",
-            )
-
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Advanced Settings") },
-                    onClick = {
-                        menuExpanded = false
-                        onAdvancedSettingsClick()
-                    },
-                )
-            }
-        }
+                .padding(top = EdgePadding, end = EdgePadding),
+            onClick =
+                    onSettingsClick
+            ,
+            icon = painterResource(R.drawable.settings),
+            contentDescription = "Settings",
+        )
 
         // -- Bottom: zoom presets, capture row, aspect ratio selector --
 
@@ -155,19 +139,19 @@ private fun CaptureRow(
     ) {
         ActionButton(
             onClick = onGalleryClick,
-            icon = painterResource(R.drawable.gallery),
+            icon = painterResource(R.drawable.photo_library),
             contentDescription = "Gallery",
         )
 
         ActionButton(
             onClick = onCaptureClick,
-            icon = painterResource(R.drawable.camera_capture),
+            icon = painterResource(R.drawable.camera),
             contentDescription = "Take photo",
         )
 
         ActionButton(
             onClick = onFlipClick,
-            icon = painterResource(R.drawable.camera_flip),
+            icon = painterResource(R.drawable.cameraswitch),
             contentDescription = "Flip camera",
         )
     }

@@ -19,11 +19,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildTypes {
-        getByName("release") {
+        release {
             isMinifyEnabled = true
         }
     }
-
 }
 
 dependencies {

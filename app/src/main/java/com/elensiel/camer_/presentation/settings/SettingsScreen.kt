@@ -16,15 +16,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.elensiel.camer_.R
 import com.elensiel.camer_.presentation.components.SettingsDropdownItem
-import com.elensiel.camer_.presentation.icons.ArrowBack
 
 @Composable
-fun AdvancedSettingsScreen(
+fun SettingsScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
@@ -35,7 +36,7 @@ fun AdvancedSettingsScreen(
 
     Surface(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Header("Advanced Settings", onBack)
+            Header("Settings", onBack)
 
             LazyColumn(
                 modifier = Modifier
@@ -67,7 +68,7 @@ private fun Header(
             modifier = Modifier.align(Alignment.CenterStart)
         ) {
             Icon(
-                imageVector = ArrowBack,
+                painter = painterResource(R.drawable.arrow_back),
                 contentDescription = "Back",
             )
         }
