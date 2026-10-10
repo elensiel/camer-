@@ -29,7 +29,9 @@ fun CameraScreen(
     )
 
     CameraControls(
-        modifier = Modifier.fillMaxSize().padding(innerPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding),
         state = state,
         onCaptureClick = viewModel::onCapture,
         onFlipClick = viewModel::onFlip,
@@ -38,11 +40,11 @@ fun CameraScreen(
         onAspectRatioClick = viewModel::onAspectRatio,
         onZoomPreset = viewModel::onZoomTo,
         onGalleryClick = {
-            context.startActivity(
-                Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
-                }
+            val intent = Intent(
+                Intent.ACTION_VIEW,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
             )
+            context.startActivity(intent)
         },
         onSettingsClick = {},
         onAdvancedSettingsClick = onOpenAdvancedSettings,
