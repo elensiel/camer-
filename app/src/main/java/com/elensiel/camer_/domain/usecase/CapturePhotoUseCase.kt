@@ -26,7 +26,10 @@ class CapturePhotoUseCase(
         return runCatching { mediaRepo.save(photo.file, photo.format, settings.saveLocation) }
             .fold(
                 onSuccess = { CaptureResult.Saved(it) },
-                onFailure = { CaptureResult.Failed(it) },
+                onFailure = {
+                    mediaRepo.discard(photo.file)
+                    CaptureResult.Failed(it)
+                },
             )
     }
 }

@@ -39,15 +39,18 @@ internal class PhotoCapturer(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onCaptureStarted() {
-                    onCaptureStarted
+                    this@PhotoCapturer.onCaptureStarted()
                     if (shutterSoundEnabled) shutterSound.play(MediaActionSound.SHUTTER_CLICK)
                 }
 
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    cont.resume(CapturedPhoto(photoFile, format))
+                    // Cancelled while the file was still being written: nobody will own it.
+                    if (cont.isActive) cont.resume(CapturedPhoto(photoFile, format))
+                    else photoFile.delete()
                 }
 
                 override fun onError(exception: ImageCaptureException) {
+                    photoFile.delete()
                     cont.resumeWithException(exception)
                 }
             }
